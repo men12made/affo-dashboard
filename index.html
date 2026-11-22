@@ -184,6 +184,7 @@
       <button class="tab" data-view="dice">骰子行动</button>
       <button class="tab" data-view="emigration">移 民</button>
       <button class="tab" data-view="crown">皇 冠</button>
+      <button class="tab" data-view="duel">熊vs火</button>
     </nav>
   </header>
 
@@ -2546,6 +2547,76 @@ const DATA = {
    "pair_lift": -22.1
   }
  ],
+ "duel": {
+  "groups": [
+   {
+    "title": "对立局（两岛各归一方）· 1246 局，平局 24",
+    "items": [
+     {
+      "n": 1246,
+      "wr": 56.6,
+      "lo": 53.8,
+      "hi": 59.3,
+      "lift": 6.6,
+      "label": "火地岛方",
+      "icon": "火",
+      "avg": 216.8
+     },
+     {
+      "n": 1246,
+      "wr": 43.4,
+      "lo": 40.7,
+      "hi": 46.2,
+      "lift": -6.6,
+      "label": "熊岛方",
+      "icon": "熊",
+      "avg": 213.1
+     }
+    ]
+   },
+   {
+    "title": "对照局面",
+    "items": [
+     {
+      "n": 175,
+      "wr": 78.6,
+      "lo": 71.9,
+      "hi": 84.0,
+      "lift": 28.6,
+      "label": "两岛归同一方",
+      "icon": "双",
+      "avg": 217.6
+     },
+     {
+      "n": 27,
+      "wr": 40.7,
+      "lo": 24.5,
+      "hi": 59.3,
+      "lift": -9.3,
+      "label": "只拿火地岛（对方无熊岛）",
+      "icon": "火",
+      "avg": 204.9
+     },
+     {
+      "n": 12,
+      "wr": 75.0,
+      "lo": 46.8,
+      "hi": 91.1,
+      "lift": 25.0,
+      "label": "只拿熊岛（对方无火地岛）",
+      "icon": "熊",
+      "avg": 201.3
+     }
+    ]
+   }
+  ],
+  "split_n": 1246,
+  "n_games": 1460,
+  "split_pct": 85.3,
+  "avg_r_bear": 3.0,
+  "avg_r_tiera": 2.9,
+  "neither": 0
+ },
  "dice": [
   {
    "kind": "raid",
@@ -2838,6 +2909,10 @@ function viewNote(view){
       const c = DATA.crown;
       return base + `皇冠判定 = gain_items / exchange 拿取「大不列颠皇冠 / 英格兰王冠」（皇冠全局仅一块，主要经 d12 大打劫获得）· <b>${c.games_pct}%</b> 的局有人拿到皇冠；<b>${Math.round(c.lose_pct)}%</b> 的持有者依然落败（${c.lose}/${c.holders} 人）——皇冠是强打劫链的标志物而非胜利原因` + tail;
     }
+    case "duel": {
+      const u = DATA.duel;
+      return base + `熊岛 vs 火地岛：<b>${u.split_pct}%</b> 的局两岛各归一方（${u.split_n}/${u.n_games}，两岛都没人拿的局 ${u.neither}）· 平均拿取轮 熊岛 R${u.avg_r_bear} / 火地岛 R${u.avg_r_tiera}` + tail;
+    }
   }
   return "";
 }
@@ -2935,7 +3010,7 @@ function renderRank(view){
 
 /* ---------- 分桶组视图（皇冠） ---------- */
 function renderGroups(view){
-  const groups = DATA.crown.groups;
+  const groups = DATA[view].groups;
   const all = groups.flatMap(g=>g.items);
   const d = domainOf(all);
   renderScale(d);
@@ -3048,6 +3123,7 @@ function render(view){
   if(view==="dice") return renderDice();
   if(view==="emigration") return renderEmigration();
   if(view==="crown") return renderGroups(view);
+  if(view==="duel") return renderGroups(view);
   return renderRank(view);
 }
 
