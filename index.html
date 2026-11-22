@@ -1,0 +1,3113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《奥丁的盛宴》AI 顾问 · 数据仪表盘</title>
+<style>
+  :root{
+    --bg:#0d1b2e; --bg2:#0a1524; --panel:#12233d; --panel2:#16294a;
+    --line:#1e3a5f; --line-soft:#18304f;
+    --txt:#dbe6f4; --muted:#7f93ad; --faint:#5b7089;
+    --gold:#e8b33f; --gold-deep:#d4a017; --blue:#8fc1f0; --blue-deep:#6ea8e0;
+    --green:#3fa97a; --red:#e06c6c; --white:#f4f8ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg2)}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+    color:var(--txt); min-height:100vh; padding:28px 24px 60px;
+    background:
+      radial-gradient(1200px 500px at 70% -10%, #16294a55 0%, transparent 60%),
+      linear-gradient(180deg,#0d1b2e 0%, #0a1524 100%);
+  }
+  .wrap{max-width:1560px;margin:0 auto}
+
+  /* ---------- 头部 ---------- */
+  header{display:flex;align-items:flex-end;justify-content:space-between;
+    flex-wrap:wrap;gap:14px;margin-bottom:18px}
+  h1{font-size:26px;font-weight:700;letter-spacing:1px}
+  h1 .accent{color:var(--gold)}
+  .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
+  .tabs{display:flex;gap:8px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:6px}
+  .tab{border:none;background:transparent;color:var(--muted);font-size:15px;
+    font-family:inherit;padding:9px 26px;border-radius:8px;cursor:pointer;
+    letter-spacing:2px;transition:all .18s}
+  .tab:hover{color:var(--txt)}
+  .tab.active{background:var(--panel2);color:var(--gold);font-weight:700;
+    box-shadow:inset 0 0 0 1px #2a4a76}
+
+  /* ---------- 卡片 ---------- */
+  .panel{background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:20px 24px 26px;
+    box-shadow:0 8px 28px rgba(0,0,0,.35)}
+  .corpus{font-size:12.5px;color:var(--muted);letter-spacing:.4px;
+    margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px 18px}
+  .corpus b{color:#a9bcd6;font-weight:600}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:12px;
+    color:var(--muted);margin-bottom:14px}
+  .legend .sw{display:inline-block;vertical-align:-2px;margin-right:6px}
+  .legend .bar-sw{width:18px;height:9px;border-radius:2px}
+  .legend .ci-sw{width:18px;height:2px;background:var(--white);position:relative}
+  .legend .dash-sw{width:18px;height:0;border-top:2px dashed #c8d6ea}
+
+  /* ---------- 表格行 ---------- */
+  .rows{border-top:1px solid var(--line-soft)}
+  .row,.scale-row{display:grid;
+    grid-template-columns:46px 54px minmax(200px,260px) 1fr 200px;
+    align-items:center;gap:14px}
+  .scale-row{padding:10px 0 4px;color:var(--faint);font-size:11.5px}
+  .scale-track{position:relative;height:14px}
+  .scale-tick{position:absolute;top:0;transform:translateX(-50%);
+    white-space:nowrap}
+  .scale-tick.mid{color:#c8d6ea;font-weight:700}
+  .row{padding:9px 0;border-bottom:1px solid var(--line-soft)}
+  .row:hover{background:#ffffff08}
+  .row.dim{opacity:.62}
+
+  .rank{text-align:center;font-size:15px;font-weight:700;color:var(--faint);
+    font-variant-numeric:tabular-nums}
+  .row:nth-child(-n+4) .rank{color:var(--gold)}
+
+  .icon{position:relative;width:44px;height:44px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:15px;color:#0d1b2e;
+    box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.14)}
+  .icon .corner{position:absolute;right:-4px;bottom:-4px;min-width:19px;
+    height:19px;border-radius:9px;font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;padding:0 4px;
+    color:#0d1b2e;border:2px solid var(--panel)}
+  .g-S{background:var(--gold)} .g-A{background:var(--green);color:#fff}
+  .g-B{background:var(--blue-deep);color:#fff} .g-C{background:#8a97a8;color:#fff}
+  .g-na{background:#5b7089;color:#cdd8e6}
+
+  .name-col{min-width:0}
+  .name{font-size:15.5px;font-weight:600;display:flex;align-items:center;
+    gap:8px;flex-wrap:wrap}
+  .sub{font-size:11.5px;color:var(--faint);margin-top:3px}
+  .badge{font-size:10.5px;font-weight:700;border-radius:9px;padding:2px 8px;
+    letter-spacing:1px;line-height:1.5}
+  .badge.sig{background:var(--gold);color:#14100a}
+  .badge.low{background:#3a4a61;color:#9fb0c6;font-weight:500}
+  .badge.lift-pos{background:#2c4a2f;color:#8fd9a8}
+  .badge.lift-neg{background:#4a2c2c;color:#e8a0a0}
+
+  /* ---------- 胜率条 ---------- */
+  .track{position:relative;height:34px;background:#0b1727;
+    border:1px solid var(--line-soft);border-radius:8px;overflow:visible}
+  .gridline{position:absolute;top:0;bottom:0;width:1px;background:#1a2f4d}
+  .midline{position:absolute;top:-4px;bottom:-4px;width:0;
+    border-left:2px dashed #c8d6ea;opacity:.85;z-index:3}
+  .bar{position:absolute;top:50%;height:14px;transform:translateY(-50%);
+    border-radius:3px;z-index:1}
+  .bar.pos{background:linear-gradient(90deg,#8a6a1e,var(--gold));
+    box-shadow:0 0 10px #e8b33f55}
+  .bar.neg{background:linear-gradient(90deg,var(--blue),#3f6ea0);
+    box-shadow:0 0 10px #8fc1f044}
+  .row.dim .bar{filter:saturate(.4) brightness(.75)}
+  .ci{position:absolute;top:50%;height:2px;background:var(--white);
+    transform:translateY(-50%);z-index:4;opacity:.95}
+  .ci::before,.ci::after{content:"";position:absolute;top:-4px;width:2px;
+    height:10px;background:var(--white)}
+  .ci::before{left:0} .ci::after{right:0}
+  .dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;
+    background:var(--white);transform:translate(-50%,-50%);z-index:5;
+    box-shadow:0 0 5px rgba(0,0,0,.6)}
+
+  /* ---------- 右列数值 ---------- */
+  .val{text-align:right}
+  .pct{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;
+    letter-spacing:.5px}
+  .pct.pos{color:var(--gold)} .pct.neg{color:var(--blue)}
+  .val .n{font-size:12.5px;color:#a9bcd6;font-weight:600;margin-top:2px;
+    font-variant-numeric:tabular-nums}
+
+  /* ---------- tooltip ---------- */
+  #tip{position:fixed;z-index:99;max-width:380px;background:#0a1424f2;
+    border:1px solid #2a4a76;border-radius:10px;padding:12px 14px;
+    font-size:12.5px;line-height:1.7;color:var(--txt);pointer-events:none;
+    display:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+  #tip .t-head{font-weight:700;font-size:13.5px;color:var(--gold);
+    margin-bottom:4px}
+  #tip .t-meta{color:var(--muted);font-size:11.5px;margin-bottom:6px}
+  #tip .t-gist{color:#c4d4ea}
+
+  footer{margin-top:16px;color:var(--faint);font-size:11.5px;text-align:center;
+    letter-spacing:.5px}
+  .view{display:none}.view.active{display:block}
+
+  /* ---------- 视图口径说明 / 分组标题 ---------- */
+  .viewnote{font-size:12px;color:var(--faint);letter-spacing:.3px;
+    margin:-2px 0 10px}
+  .viewnote b{color:#a9bcd6;font-weight:600}
+  .group-title{font-size:14.5px;font-weight:700;color:var(--gold);
+    letter-spacing:1px;margin:18px 0 8px;padding-left:10px;
+    border-left:3px solid var(--gold-deep)}
+  .group-title:first-child{margin-top:4px}
+  .group-title .g-sub{font-size:11.5px;color:var(--faint);font-weight:400;
+    margin-left:10px;letter-spacing:.3px}
+  .group-foot{font-size:12px;color:var(--faint);letter-spacing:.3px;
+    margin:8px 0 4px;padding-left:10px}
+  .group-foot b{color:#a9bcd6;font-weight:600}
+
+  /* 多字图标（组合/分桶） */
+  .icon.small{font-size:12px;letter-spacing:0}
+
+  /* ---------- 骰子视图：胜者 vs 败者双条 ---------- */
+  .dbar{position:absolute;left:0;height:9px;border-radius:3px;z-index:1}
+  .dbar.win{top:5px;background:linear-gradient(90deg,#8a6a1e,var(--gold));
+    box-shadow:0 0 8px #e8b33f55}
+  .dbar.lose{bottom:5px;background:linear-gradient(90deg,#3f6ea0,var(--blue));
+    box-shadow:0 0 8px #8fc1f044}
+  .dlab{position:absolute;font-size:10.5px;font-weight:700;
+    font-variant-numeric:tabular-nums;white-space:nowrap;z-index:2}
+  .dlab.win{top:2px;color:var(--gold)}
+  .dlab.lose{bottom:2px;color:var(--blue)}
+  .val .cmp{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;
+    line-height:1.45}
+  .val .cmp .w{color:var(--gold)} .val .cmp .l{color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>《奥丁的盛宴》<span class="accent">AI 顾问</span> · 数据仪表盘</h1>
+      <div class="subtitle">A Feast for Odin — 二人局胜率归因（BGA 对局语料统计）</div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-view="islands">岛 屿</button>
+      <button class="tab" data-view="pairs">岛屿组合</button>
+      <button class="tab" data-view="sheds">手工工棚</button>
+      <button class="tab" data-view="cards">职业卡</button>
+      <button class="tab" data-view="dice">骰子行动</button>
+      <button class="tab" data-view="emigration">移 民</button>
+      <button class="tab" data-view="crown">皇 冠</button>
+    </nav>
+  </header>
+
+  <section class="panel">
+    <div class="corpus" id="corpus"></div>
+    <div class="viewnote" id="viewnote"></div>
+    <div class="legend">
+      <span><span class="sw bar-sw" style="background:var(--gold)"></span>正侧（胜率 &gt; 50%）</span>
+      <span><span class="sw bar-sw" style="background:var(--blue)"></span>负侧（胜率 &lt; 50%）</span>
+      <span><span class="sw ci-sw"></span>Wilson 95% CI 须线</span>
+      <span><span class="sw dash-sw"></span>50% 基准线</span>
+      <span><span class="badge sig" style="vertical-align:1px">显著</span> CI 不含 50%</span>
+      <span><span class="badge low" style="vertical-align:1px">数据不足</span> n &lt; 10</span>
+    </div>
+    <div class="scale-row">
+      <div></div><div></div><div></div>
+      <div class="scale-track" id="scale"></div>
+      <div style="text-align:right" id="scale-label">胜率 · n / 总样本</div>
+    </div>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <footer>Odin Advisor · 语料快照 corpus_1460_snapshot.json（最终版 1460 局 mini2 长局） · 由 tools/make_dashboard.py 生成 · 相关非因果，不构成出牌建议的唯一依据</footer>
+</div>
+
+<div id="tip"></div>
+
+<script>
+const DATA = {
+ "meta": {
+  "games": 1460,
+  "samples": 2920,
+  "ties": 25,
+  "overall": 50.0,
+  "dice_win": 1435,
+  "dice_lose": 1435,
+  "dice_tie": 50
+ },
+ "islands": [
+  {
+   "n": 1448,
+   "wr": 58.9,
+   "lo": 56.4,
+   "hi": 61.5,
+   "lift": 8.9,
+   "id": "tierra_del_fuego",
+   "zh": "火地岛",
+   "grade": "S",
+   "avg": 216.7
+  },
+  {
+   "n": 452,
+   "wr": 58.1,
+   "lo": 53.5,
+   "hi": 62.5,
+   "lift": 8.1,
+   "id": "labrador",
+   "zh": "拉布拉多半岛",
+   "grade": "S",
+   "avg": 218.0
+  },
+  {
+   "n": 1447,
+   "wr": 57.8,
+   "lo": 55.2,
+   "hi": 60.3,
+   "lift": 7.8,
+   "id": "isle_of_mull",
+   "zh": "马尔岛",
+   "grade": "S",
+   "avg": 216.0
+  },
+  {
+   "n": 405,
+   "wr": 55.6,
+   "lo": 50.7,
+   "hi": 60.3,
+   "lift": 5.6,
+   "id": "newfoundland",
+   "zh": "纽芬兰岛",
+   "grade": "A",
+   "avg": 219.5
+  },
+  {
+   "n": 844,
+   "wr": 52.0,
+   "lo": 48.6,
+   "hi": 55.4,
+   "lift": 2.0,
+   "id": "islay",
+   "zh": "艾雷岛",
+   "grade": "B",
+   "avg": 214.4
+  },
+  {
+   "n": 1152,
+   "wr": 51.8,
+   "lo": 48.9,
+   "hi": 54.7,
+   "lift": 1.8,
+   "id": "lofoten",
+   "zh": "罗弗敦群岛",
+   "grade": "B",
+   "avg": 214.9
+  },
+  {
+   "n": 1096,
+   "wr": 48.2,
+   "lo": 45.3,
+   "hi": 51.2,
+   "lift": -1.8,
+   "id": "isle_of_man",
+   "zh": "马恩岛",
+   "grade": "B",
+   "avg": 214.1
+  },
+  {
+   "n": 1433,
+   "wr": 48.0,
+   "lo": 45.4,
+   "hi": 50.6,
+   "lift": -2.0,
+   "id": "bear_island",
+   "zh": "熊岛",
+   "grade": "B",
+   "avg": 213.5
+  },
+  {
+   "n": 816,
+   "wr": 48.0,
+   "lo": 44.6,
+   "hi": 51.4,
+   "lift": -2.0,
+   "id": "iceland",
+   "zh": "冰岛",
+   "grade": "B",
+   "avg": 213.4
+  },
+  {
+   "n": 331,
+   "wr": 46.7,
+   "lo": 41.4,
+   "hi": 52.1,
+   "lift": -3.3,
+   "id": "greenland",
+   "zh": "格陵兰岛",
+   "grade": "B",
+   "avg": 209.4
+  },
+  {
+   "n": 65,
+   "wr": 44.6,
+   "lo": 33.2,
+   "hi": 56.7,
+   "lift": -5.4,
+   "id": "faroe_islands",
+   "zh": "法罗群岛",
+   "grade": "B",
+   "avg": 218.6
+  },
+  {
+   "n": 7,
+   "wr": 42.9,
+   "lo": 15.8,
+   "hi": 75.0,
+   "lift": -7.1,
+   "id": "caithness",
+   "zh": "凯思内斯",
+   "grade": "数据不足",
+   "avg": 203.9
+  },
+  {
+   "n": 206,
+   "wr": 42.2,
+   "lo": 35.7,
+   "hi": 49.1,
+   "lift": -7.8,
+   "id": "limerick",
+   "zh": "利默里克",
+   "grade": "C",
+   "avg": 210.7
+  },
+  {
+   "n": 372,
+   "wr": 41.7,
+   "lo": 36.8,
+   "hi": 46.7,
+   "lift": -8.3,
+   "id": "cork",
+   "zh": "科克",
+   "grade": "C",
+   "avg": 209.0
+  },
+  {
+   "n": 635,
+   "wr": 41.0,
+   "lo": 37.3,
+   "hi": 44.9,
+   "lift": -9.0,
+   "id": "isle_of_skye",
+   "zh": "斯凯岛",
+   "grade": "C",
+   "avg": 213.3
+  },
+  {
+   "n": 29,
+   "wr": 37.9,
+   "lo": 22.7,
+   "hi": 56.0,
+   "lift": -12.1,
+   "id": "orkney",
+   "zh": "奥克尼群岛",
+   "grade": "B",
+   "avg": 213.1
+  },
+  {
+   "n": 157,
+   "wr": 35.0,
+   "lo": 28.0,
+   "hi": 42.8,
+   "lift": -15.0,
+   "id": "baffin_island",
+   "zh": "巴芬岛",
+   "grade": "C",
+   "avg": 202.6
+  },
+  {
+   "n": 115,
+   "wr": 24.3,
+   "lo": 17.4,
+   "hi": 32.9,
+   "lift": -25.7,
+   "id": "waterford",
+   "zh": "沃特福德",
+   "grade": "C",
+   "avg": 202.6
+  },
+  {
+   "n": 21,
+   "wr": 19.0,
+   "lo": 7.7,
+   "hi": 40.0,
+   "lift": -31.0,
+   "id": "shetland",
+   "zh": "设得兰群岛",
+   "grade": "C",
+   "avg": 197.4
+  },
+  {
+   "n": 68,
+   "wr": 16.2,
+   "lo": 9.3,
+   "hi": 26.7,
+   "lift": -33.8,
+   "id": "wexford",
+   "zh": "韦克斯福德",
+   "grade": "C",
+   "avg": 203.2
+  },
+  {
+   "n": 3,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 56.2,
+   "lift": -50.0,
+   "id": "outer_hebrides",
+   "zh": "外赫布里底群岛",
+   "grade": "数据不足",
+   "avg": 180.7
+  }
+ ],
+ "sheds": [
+  {
+   "n": 144,
+   "wr": 63.2,
+   "lo": 55.1,
+   "hi": 70.6,
+   "lift": 13.2,
+   "id": "cowshed",
+   "zh": "牛舍",
+   "avg": 216.6
+  },
+  {
+   "n": 341,
+   "wr": 54.8,
+   "lo": 49.5,
+   "hi": 60.0,
+   "lift": 4.8,
+   "id": "masons_shed",
+   "zh": "石匠工棚",
+   "avg": 216.3
+  },
+  {
+   "n": 390,
+   "wr": 54.1,
+   "lo": 49.1,
+   "hi": 59.0,
+   "lift": 4.1,
+   "id": "hermits_hut",
+   "zh": "隐士小屋",
+   "avg": 216.2
+  },
+  {
+   "n": 343,
+   "wr": 52.9,
+   "lo": 47.6,
+   "hi": 58.1,
+   "lift": 2.9,
+   "id": "hunting_lodge",
+   "zh": "猎人小屋",
+   "avg": 218.0
+  },
+  {
+   "n": 409,
+   "wr": 52.2,
+   "lo": 47.4,
+   "hi": 57.0,
+   "lift": 2.2,
+   "id": "lumberjacks_hut",
+   "zh": "伐木工小屋",
+   "avg": 215.9
+  },
+  {
+   "n": 407,
+   "wr": 50.7,
+   "lo": 45.9,
+   "hi": 55.6,
+   "lift": 0.7,
+   "id": "spinnery",
+   "zh": "纺纱坊",
+   "avg": 214.7
+  },
+  {
+   "n": 224,
+   "wr": 48.2,
+   "lo": 41.8,
+   "hi": 54.7,
+   "lift": -1.8,
+   "id": "armory",
+   "zh": "军械库/武器仓库",
+   "avg": 216.2
+  },
+  {
+   "n": 22,
+   "wr": 43.2,
+   "lo": 25.1,
+   "hi": 63.3,
+   "lift": -6.8,
+   "id": "beekeeper",
+   "zh": "养蜂小屋",
+   "avg": 206.0
+  },
+  {
+   "n": 10,
+   "wr": 30.0,
+   "lo": 10.8,
+   "hi": 60.3,
+   "lift": -20.0,
+   "id": "barn",
+   "zh": "马厩",
+   "avg": 206.7
+  },
+  {
+   "n": 0,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 100.0,
+   "lift": -50.0,
+   "id": "icehouse",
+   "zh": "冰窖",
+   "avg": 0.0
+  },
+  {
+   "n": 9,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 29.9,
+   "lift": -50.0,
+   "id": "pig_sty",
+   "zh": "猪圈",
+   "avg": 189.4
+  },
+  {
+   "n": 0,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 100.0,
+   "lift": -50.0,
+   "id": "whaling_hut",
+   "zh": "捕鲸小屋",
+   "avg": 0.0
+  }
+ ],
+ "cards": [
+  {
+   "n": 11,
+   "wr": 86.4,
+   "lo": 57.1,
+   "hi": 96.8,
+   "lift": 36.4,
+   "avg": 234.1,
+   "no": "115b",
+   "zh": "公主",
+   "unmapped": false,
+   "gist": "每次使用建造房屋行动格，额外得1银器。",
+   "pts": 1,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 29,
+   "wr": 72.4,
+   "lo": 54.3,
+   "hi": 85.3,
+   "lift": 22.4,
+   "avg": 213.7,
+   "no": "168C",
+   "zh": "拉德的雅尔",
+   "unmapped": false,
+   "gist": "每当你庭之广场上的维京人恰好变成3个，得1银币。",
+   "pts": 2,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 43,
+   "wr": 67.4,
+   "lo": 52.5,
+   "hi": 79.5,
+   "lift": 17.4,
+   "avg": 219.4,
+   "no": "",
+   "zh": "矿石船夫*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 41,
+   "wr": 67.1,
+   "lo": 51.8,
+   "hi": 79.4,
+   "lift": 17.1,
+   "avg": 219.8,
+   "no": "121B",
+   "zh": "木匠",
+   "unmapped": false,
+   "gist": "每次使用建造船只或建造房屋行动格前，可从山脉板块拿1资源。",
+   "pts": 0,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 15,
+   "wr": 66.7,
+   "lo": 41.7,
+   "hi": 84.8,
+   "lift": 16.7,
+   "avg": 214.3,
+   "no": "59A",
+   "zh": "亚麻编织工",
+   "unmapped": false,
+   "gist": "随时可用2亚麻+1银币换2亚麻布。",
+   "pts": 0,
+   "deck": "A",
+   "type": "任意时刻"
+  },
+  {
+   "n": 20,
+   "wr": 65.0,
+   "lo": 43.3,
+   "hi": 81.9,
+   "lift": 15.0,
+   "avg": 215.6,
+   "no": "",
+   "zh": "队长*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 28,
+   "wr": 64.3,
+   "lo": 45.8,
+   "hi": 79.3,
+   "lift": 14.3,
+   "avg": 224.3,
+   "no": "92C",
+   "zh": "安慰者",
+   "unmapped": false,
+   "gist": "无收获的轮次，你有3/4/5个特殊板块则得1/2/3银币。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 47,
+   "wr": 63.8,
+   "lo": 49.5,
+   "hi": 76.0,
+   "lift": 13.8,
+   "avg": 216.9,
+   "no": "",
+   "zh": "艺术家*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 87,
+   "wr": 62.1,
+   "lo": 51.6,
+   "hi": 71.5,
+   "lift": 12.1,
+   "avg": 222.2,
+   "no": "20A",
+   "zh": "建筑工",
+   "unmapped": false,
+   "gist": "打出时可立即只为你的房屋单独结算一次奖励阶段。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 135,
+   "wr": 61.1,
+   "lo": 52.7,
+   "hi": 68.9,
+   "lift": 11.1,
+   "avg": 220.8,
+   "no": "77A",
+   "zh": "追随者",
+   "unmapped": false,
+   "gist": "打出时可使用第2列一个已被占用的行动格（不论被谁占）。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 56,
+   "wr": 60.7,
+   "lo": 47.6,
+   "hi": 72.4,
+   "lift": 10.7,
+   "avg": 218.5,
+   "no": "186A",
+   "zh": "豌豆粉面包工",
+   "unmapped": false,
+   "gist": "宴会阶段可横放最多2个豌豆（原本同种只能横放1个）。",
+   "pts": 3,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 38,
+   "wr": 60.5,
+   "lo": 44.7,
+   "hi": 74.4,
+   "lift": 10.5,
+   "avg": 222.0,
+   "no": "165A",
+   "zh": "村长",
+   "unmapped": false,
+   "gist": "宴会阶段开始时，供应区有≥1衣服则得2银币。",
+   "pts": 3,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 92,
+   "wr": 60.3,
+   "lo": 50.1,
+   "hi": 69.7,
+   "lift": 10.3,
+   "avg": 215.0,
+   "no": "68A",
+   "zh": "武器供应商",
+   "unmapped": false,
+   "gist": "打出时翻4张武器卡放到你面前。",
+   "pts": 2,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 35,
+   "wr": 60.0,
+   "lo": 43.6,
+   "hi": 74.4,
+   "lift": 10.0,
+   "avg": 216.0,
+   "no": "30B",
+   "zh": "丝绸商人",
+   "unmapped": false,
+   "gist": "打出时供应区有1/2/3丝绸，得1/3/6银币。",
+   "pts": 3,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 116,
+   "wr": 59.9,
+   "lo": 50.8,
+   "hi": 68.4,
+   "lift": 9.9,
+   "avg": 218.0,
+   "no": "160a",
+   "zh": "清醒的人",
+   "unmapped": false,
+   "gist": "宴会阶段没放任何蜂蜜酒时，得1银币（可立即用于宴会）。",
+   "pts": 2,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 106,
+   "wr": 59.4,
+   "lo": 49.9,
+   "hi": 68.3,
+   "lift": 9.4,
+   "avg": 218.3,
+   "no": "64A",
+   "zh": "造船工",
+   "unmapped": false,
+   "gist": "打出时可付2银币，把1艘捕鲸船换成长船。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 53,
+   "wr": 59.4,
+   "lo": 46.0,
+   "hi": 71.6,
+   "lift": 9.4,
+   "avg": 215.0,
+   "no": "43A",
+   "zh": "水果采摘工",
+   "unmapped": false,
+   "gist": "打出时得1水果。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 22,
+   "wr": 59.1,
+   "lo": 38.7,
+   "hi": 76.7,
+   "lift": 9.1,
+   "avg": 216.7,
+   "no": "2C",
+   "zh": "老主顾",
+   "unmapped": false,
+   "gist": "行动格费用≥2银币时总价减1（含第2轮起的移民、买腌肉/牛、买特殊板块）。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 29,
+   "wr": 58.6,
+   "lo": 40.7,
+   "hi": 74.5,
+   "lift": 8.6,
+   "avg": 216.0,
+   "no": "55C",
+   "zh": "会计",
+   "unmapped": false,
+   "gist": "随时可付3银币，把1个箱子换成藏宝箱。",
+   "pts": 2,
+   "deck": "C",
+   "type": "任意时刻"
+  },
+  {
+   "n": 94,
+   "wr": 58.5,
+   "lo": 48.4,
+   "hi": 67.9,
+   "lift": 8.5,
+   "avg": 220.1,
+   "no": "22A",
+   "zh": "矿工",
+   "unmapped": false,
+   "gist": "打出时每艘长船得1石块+1铁矿+1银币。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 199,
+   "wr": 58.3,
+   "lo": 51.3,
+   "hi": 64.9,
+   "lift": 8.3,
+   "avg": 216.4,
+   "no": "67C",
+   "zh": "私人厨师",
+   "unmapped": false,
+   "gist": "打出时可花4银币买2银器+1野味+1蜂蜜酒。",
+   "pts": 1,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 112,
+   "wr": 58.0,
+   "lo": 48.8,
+   "hi": 66.8,
+   "lift": 8.0,
+   "avg": 218.7,
+   "no": "23A",
+   "zh": "房屋管理员",
+   "unmapped": false,
+   "gist": "打出时每座石屋/长屋得2银币（工棚不算）。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 57,
+   "wr": 57.9,
+   "lo": 45.0,
+   "hi": 69.8,
+   "lift": 7.9,
+   "avg": 214.6,
+   "no": "57b",
+   "zh": "豆农",
+   "unmapped": false,
+   "gist": "随时可用2豆子换1豌豆+1蜂蜜酒+1鱼干。",
+   "pts": 1,
+   "deck": "B",
+   "type": "任意时刻"
+  },
+  {
+   "n": 91,
+   "wr": 57.7,
+   "lo": 47.4,
+   "hi": 67.3,
+   "lift": 7.7,
+   "avg": 215.4,
+   "no": "147A",
+   "zh": "舵手",
+   "unmapped": false,
+   "gist": "有商船时，需要长船的行动（突袭/抢劫/掠夺/远方探索）可改用商船。",
+   "pts": 1,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 123,
+   "wr": 57.7,
+   "lo": 48.9,
+   "hi": 66.1,
+   "lift": 7.7,
+   "avg": 220.0,
+   "no": "84B",
+   "zh": "海湾守卫",
+   "unmapped": false,
+   "gist": "打出时可立即移民，费用照常但每艘商船/长船减1银币。",
+   "pts": 0,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 26,
+   "wr": 57.7,
+   "lo": 38.9,
+   "hi": 74.5,
+   "lift": 7.7,
+   "avg": 215.1,
+   "no": "63C",
+   "zh": "宰羊工",
+   "unmapped": false,
+   "gist": "打出时可弃1只羊换腌肉、兽皮、羊毛各1，和/或花3银币买角杯。",
+   "pts": 2,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 177,
+   "wr": 57.6,
+   "lo": 50.3,
+   "hi": 64.7,
+   "lift": 7.6,
+   "avg": 215.7,
+   "no": "108c",
+   "zh": "铁匠",
+   "unmapped": false,
+   "gist": "在铁矿换箱子格或锻造格用铁矿交换时，可付1银币收回1个维京人。",
+   "pts": 2,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 131,
+   "wr": 57.3,
+   "lo": 48.7,
+   "hi": 65.4,
+   "lift": 7.3,
+   "avg": 222.2,
+   "no": "6B",
+   "zh": "刻石匠",
+   "unmapped": false,
+   "gist": "每从山脉板块拿1个石块进供应区，额外得1银币。",
+   "pts": 1,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 35,
+   "wr": 57.1,
+   "lo": 40.9,
+   "hi": 72.0,
+   "lift": 7.1,
+   "avg": 218.0,
+   "no": "142B",
+   "zh": "捕鲸者",
+   "unmapped": false,
+   "gist": "捕鲸成功且恰好只用了1张长矛时，收回这张长矛。",
+   "pts": 3,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 60,
+   "wr": 56.7,
+   "lo": 44.1,
+   "hi": 68.4,
+   "lift": 6.7,
+   "avg": 213.7,
+   "no": "65A",
+   "zh": "屠龙者",
+   "unmapped": false,
+   "gist": "打出时可用2张陷阱+2张长矛换1藏宝箱。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 69,
+   "wr": 56.5,
+   "lo": 44.8,
+   "hi": 67.6,
+   "lift": 6.5,
+   "avg": 217.9,
+   "no": "",
+   "zh": "斗士*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 159,
+   "wr": 56.3,
+   "lo": 48.5,
+   "hi": 63.8,
+   "lift": 6.3,
+   "avg": 216.5,
+   "no": "117A",
+   "zh": "船主",
+   "unmapped": false,
+   "gist": "每次付≥1木头建商船或长船后，可执行一次「升级1件物资」。",
+   "pts": 3,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 100,
+   "wr": 56.0,
+   "lo": 46.2,
+   "hi": 65.3,
+   "lift": 6.0,
+   "avg": 217.2,
+   "no": "76A",
+   "zh": "返乡者",
+   "unmapped": false,
+   "gist": "打出时可从第4列每个行动格各撤回1个维京人到庭之广场再用。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 51,
+   "wr": 55.9,
+   "lo": 42.3,
+   "hi": 68.6,
+   "lift": 5.9,
+   "avg": 215.8,
+   "no": "105B",
+   "zh": "商船建造者",
+   "unmapped": false,
+   "gist": "使用第1列建捕鲸船的行动格时，可改为花3木头建1艘商船。",
+   "pts": 3,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 106,
+   "wr": 55.7,
+   "lo": 46.2,
+   "hi": 64.8,
+   "lift": 5.7,
+   "avg": 217.2,
+   "no": "176B",
+   "zh": "礼仪指导师",
+   "unmapped": false,
+   "gist": "每次在一次行动中打出≥1张职业卡后，得1豌豆。",
+   "pts": 3,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 35,
+   "wr": 55.7,
+   "lo": 39.5,
+   "hi": 70.8,
+   "lift": 5.7,
+   "avg": 211.7,
+   "no": "",
+   "zh": "犁*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 55,
+   "wr": 55.5,
+   "lo": 42.4,
+   "hi": 67.8,
+   "lift": 5.5,
+   "avg": 215.0,
+   "no": "93C",
+   "zh": "救助者",
+   "unmapped": false,
+   "gist": "无收获的轮次，有恰1/2/3艘捕鲸船则得豆子/谷物/卷心菜。",
+   "pts": 3,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 78,
+   "wr": 55.1,
+   "lo": 44.1,
+   "hi": 65.7,
+   "lift": 5.1,
+   "avg": 217.9,
+   "no": "114C",
+   "zh": "丝绸裁缝",
+   "unmapped": false,
+   "gist": "每次使用手工制造行动格后，可花3银币买1丝绸。",
+   "pts": 3,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 102,
+   "wr": 54.9,
+   "lo": 45.2,
+   "hi": 64.2,
+   "lift": 4.9,
+   "avg": 213.5,
+   "no": "87A",
+   "zh": "布道者",
+   "unmapped": false,
+   "gist": "打出时拿十字架，或从单一山脉板块拿4个资源。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 92,
+   "wr": 54.9,
+   "lo": 44.7,
+   "hi": 64.7,
+   "lift": 4.9,
+   "avg": 214.9,
+   "no": "164A",
+   "zh": "武装斗士",
+   "unmapped": false,
+   "gist": "每次在第4列放4个维京人前，可执行一次「拿1建造资源」，限石块或铁矿。",
+   "pts": 3,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 60,
+   "wr": 54.2,
+   "lo": 41.7,
+   "hi": 66.1,
+   "lift": 4.2,
+   "avg": 216.8,
+   "no": "26c",
+   "zh": "肉类检验员",
+   "unmapped": false,
+   "gist": "打出时供应区和畜栏里每有一种红色物资，得1银币。",
+   "pts": 0,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 170,
+   "wr": 54.1,
+   "lo": 46.6,
+   "hi": 61.4,
+   "lift": 4.1,
+   "avg": 216.8,
+   "no": "113a",
+   "zh": "学徒工匠",
+   "unmapped": false,
+   "gist": "每次使用手工制造行动格前，可从山脉板块拿1资源。",
+   "pts": 0,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 63,
+   "wr": 54.0,
+   "lo": 41.8,
+   "hi": 65.7,
+   "lift": 4.0,
+   "avg": 214.5,
+   "no": "",
+   "zh": "香料贸易商*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 87,
+   "wr": 54.0,
+   "lo": 43.6,
+   "hi": 64.1,
+   "lift": 4.0,
+   "avg": 218.6,
+   "no": "40B",
+   "zh": "老练的工匠",
+   "unmapped": false,
+   "gist": "随时可像放银币一样，把木头放到石屋/长屋的空格上。",
+   "pts": 3,
+   "deck": "B",
+   "type": "任意时刻"
+  },
+  {
+   "n": 13,
+   "wr": 53.8,
+   "lo": 29.1,
+   "hi": 76.8,
+   "lift": 3.8,
+   "avg": 211.4,
+   "no": "173B",
+   "zh": "雕刻师",
+   "unmapped": false,
+   "gist": "山脉阶段每移除1个铁矿/「2银币」，你得1/2银币。",
+   "pts": 1,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 15,
+   "wr": 53.3,
+   "lo": 30.1,
+   "hi": 75.2,
+   "lift": 3.3,
+   "avg": 220.7,
+   "no": "47a",
+   "zh": "制革工",
+   "unmapped": false,
+   "gist": "随时可把腌肉按1:1换成兽皮。",
+   "pts": 2,
+   "deck": "A",
+   "type": "任意时刻"
+  },
+  {
+   "n": 105,
+   "wr": 53.3,
+   "lo": 43.8,
+   "hi": 62.6,
+   "lift": 3.3,
+   "avg": 213.9,
+   "no": "116c",
+   "zh": "老练的砖匠",
+   "unmapped": false,
+   "gist": "用建造房屋行动格建石屋/长屋时，少付1石块。",
+   "pts": 2,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 16,
+   "wr": 53.1,
+   "lo": 30.6,
+   "hi": 74.5,
+   "lift": 3.1,
+   "avg": 216.9,
+   "no": "35A",
+   "zh": "饲养员",
+   "unmapped": false,
+   "gist": "打出时可只为自己单独进行一次动物繁殖阶段。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 83,
+   "wr": 53.0,
+   "lo": 42.4,
+   "hi": 63.4,
+   "lift": 3.0,
+   "avg": 215.1,
+   "no": "118c",
+   "zh": "信差",
+   "unmapped": false,
+   "gist": "每次使用每周集市行动格，额外得1蜂蜜酒+1石块。",
+   "pts": 0,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 74,
+   "wr": 52.7,
+   "lo": 41.5,
+   "hi": 63.7,
+   "lift": 2.7,
+   "avg": 212.8,
+   "no": "17A",
+   "zh": "东方货主",
+   "unmapped": false,
+   "gist": "打出时可把1块橙/红/绿物资连续升级成同尺寸的蓝色物资。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 92,
+   "wr": 52.7,
+   "lo": 42.6,
+   "hi": 62.6,
+   "lift": 2.7,
+   "avg": 219.8,
+   "no": "82B",
+   "zh": "长船建造者",
+   "unmapped": false,
+   "gist": "打出时可买1艘长船；有1/2/3艘商船时只需6/3/1银币。",
+   "pts": 1,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 96,
+   "wr": 52.6,
+   "lo": 42.7,
+   "hi": 62.3,
+   "lift": 2.6,
+   "avg": 216.8,
+   "no": "24A",
+   "zh": "捕鲸装备工",
+   "unmapped": false,
+   "gist": "打出时每艘商船得1油，每艘捕鲸船得1木头。",
+   "pts": 2,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 97,
+   "wr": 52.1,
+   "lo": 42.2,
+   "hi": 61.7,
+   "lift": 2.1,
+   "avg": 215.0,
+   "no": "75C",
+   "zh": "拾骨者",
+   "unmapped": false,
+   "gist": "打出时可花1银币买1块皮与骨。",
+   "pts": 0,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 71,
+   "wr": 52.1,
+   "lo": 40.7,
+   "hi": 63.3,
+   "lift": 2.1,
+   "avg": 215.4,
+   "no": "27A",
+   "zh": "渔夫",
+   "unmapped": false,
+   "gist": "打出时每艘捕鲸船得1鱼干。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 80,
+   "wr": 51.9,
+   "lo": 41.1,
+   "hi": 62.5,
+   "lift": 1.9,
+   "avg": 219.5,
+   "no": "71C",
+   "zh": "旅店老板",
+   "unmapped": false,
+   "gist": "打出时可把任一玩家版图上的角杯拿进你的供应区，原位补箱子+卢恩石。",
+   "pts": -1,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 112,
+   "wr": 51.8,
+   "lo": 42.6,
+   "hi": 60.8,
+   "lift": 1.8,
+   "avg": 213.6,
+   "no": "60C",
+   "zh": "监察员",
+   "unmapped": false,
+   "gist": "打出时可把行动格上1个维京人移回庭之广场再用；付当前轮数银币可移2个。",
+   "pts": 2,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 73,
+   "wr": 51.4,
+   "lo": 40.1,
+   "hi": 62.5,
+   "lift": 1.4,
+   "avg": 212.3,
+   "no": "70B",
+   "zh": "信使",
+   "unmapped": false,
+   "gist": "打出时可把任一玩家版图上的披风钉拿进你的供应区，原位补银器+卢恩石。",
+   "pts": 0,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 71,
+   "wr": 51.4,
+   "lo": 40.0,
+   "hi": 62.7,
+   "lift": 1.4,
+   "avg": 214.7,
+   "no": "69c",
+   "zh": "装备供应商",
+   "unmapped": false,
+   "gist": "打出时补拿武器卡，直到四种武器各有2张。",
+   "pts": 1,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 78,
+   "wr": 51.3,
+   "lo": 40.4,
+   "hi": 62.1,
+   "lift": 1.3,
+   "avg": 216.9,
+   "no": "103C",
+   "zh": "林中铁匠",
+   "unmapped": false,
+   "gist": "在铁矿换箱子格或锻造格用铁矿交换前，可先从山脉板块拿1资源。",
+   "pts": 3,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 78,
+   "wr": 51.3,
+   "lo": 40.4,
+   "hi": 62.1,
+   "lift": 1.3,
+   "avg": 216.3,
+   "no": "86A",
+   "zh": "兽皮买主",
+   "unmapped": false,
+   "gist": "打出时可付2/4/6银币买1/2/3兽皮。",
+   "pts": 3,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 124,
+   "wr": 50.8,
+   "lo": 42.1,
+   "hi": 59.4,
+   "lift": 0.8,
+   "avg": 216.5,
+   "no": "62b",
+   "zh": "能干的铁匠",
+   "unmapped": false,
+   "gist": "打出时可付1铁矿+1银币，拿十字架或披风钉特殊板块。",
+   "pts": 3,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 82,
+   "wr": 50.6,
+   "lo": 40.0,
+   "hi": 61.2,
+   "lift": 0.6,
+   "avg": 218.7,
+   "no": "178B",
+   "zh": "捕鲸船建造者",
+   "unmapped": false,
+   "gist": "打出后一旦拥有4艘商船/长船，免费得2艘捕鲸船（仅一次）。",
+   "pts": 0,
+   "deck": "B",
+   "type": "条件触发"
+  },
+  {
+   "n": 113,
+   "wr": 50.4,
+   "lo": 41.4,
+   "hi": 59.5,
+   "lift": 0.4,
+   "avg": 214.0,
+   "no": "19C",
+   "zh": "主人",
+   "unmapped": false,
+   "gist": "打出时按特殊板块数恰3/恰4/≥5，得丝绸/香料/珠宝。",
+   "pts": 0,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 128,
+   "wr": 50.0,
+   "lo": 41.5,
+   "hi": 58.5,
+   "lift": 0.0,
+   "avg": 212.3,
+   "no": "73C",
+   "zh": "金属匠",
+   "unmapped": false,
+   "gist": "打出时三选一：免费拿1银器、花2银币买十字架、花5银币买圣杯。",
+   "pts": 2,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 20,
+   "wr": 50.0,
+   "lo": 29.9,
+   "hi": 70.1,
+   "lift": 0.0,
+   "avg": 210.3,
+   "no": "187B",
+   "zh": "史学家",
+   "unmapped": false,
+   "gist": "随时可用3亚麻换1藏宝箱；每次维京人行动时可付2亚麻拿腰带。",
+   "pts": 2,
+   "deck": "B",
+   "type": "任意时刻"
+  },
+  {
+   "n": 58,
+   "wr": 50.0,
+   "lo": 37.5,
+   "hi": 62.5,
+   "lift": 0.0,
+   "avg": 211.1,
+   "no": "83A",
+   "zh": "批发商",
+   "unmapped": false,
+   "gist": "打出时可执行一次「升级4件物资」，但4件必须是同一种。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 14,
+   "wr": 50.0,
+   "lo": 26.8,
+   "hi": 73.2,
+   "lift": 0.0,
+   "avg": 209.4,
+   "no": "38A",
+   "zh": "和事佬",
+   "unmapped": false,
+   "gist": "每轮抽武器卡阶段，可改拿1木头、1石块或1铁矿。",
+   "pts": 2,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 97,
+   "wr": 49.5,
+   "lo": 39.7,
+   "hi": 59.3,
+   "lift": -0.5,
+   "avg": 214.1,
+   "no": "146C",
+   "zh": "雪橇搬运者",
+   "unmapped": false,
+   "gist": "狩猎和铺设陷阱时，每颗骰-1。",
+   "pts": 0,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 61,
+   "wr": 49.2,
+   "lo": 37.1,
+   "hi": 61.4,
+   "lift": -0.8,
+   "avg": 210.0,
+   "no": "151c",
+   "zh": "庭之发言人",
+   "unmapped": false,
+   "gist": "每次有恰好1或2个维京人从版图回到庭之广场，得1银币。",
+   "pts": 3,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 123,
+   "wr": 49.2,
+   "lo": 40.5,
+   "hi": 57.9,
+   "lift": -0.8,
+   "avg": 211.3,
+   "no": "91c",
+   "zh": "后来者",
+   "unmapped": false,
+   "gist": "行动阶段末可付1银币，不放人使用与你第1列维京人上下相邻的空格。",
+   "pts": 0,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 55,
+   "wr": 49.1,
+   "lo": 36.4,
+   "hi": 61.9,
+   "lift": -0.9,
+   "avg": 212.8,
+   "no": "145a",
+   "zh": "护林人",
+   "unmapped": false,
+   "gist": "每次狩猎前，可从山脉板块拿1资源。",
+   "pts": 2,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 57,
+   "wr": 49.1,
+   "lo": 36.6,
+   "hi": 61.7,
+   "lift": -0.9,
+   "avg": 210.5,
+   "no": "",
+   "zh": "烹鱼人*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 168,
+   "wr": 48.8,
+   "lo": 41.4,
+   "hi": 56.3,
+   "lift": -1.2,
+   "avg": 214.9,
+   "no": "15C",
+   "zh": "佃农",
+   "unmapped": false,
+   "gist": "打出时每座石屋/长屋得2蜂蜜酒；之后每建1座石屋/长屋得1兽皮。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 86,
+   "wr": 48.8,
+   "lo": 38.6,
+   "hi": 59.2,
+   "lift": -1.2,
+   "avg": 213.6,
+   "no": "183C",
+   "zh": "粮食运送员",
+   "unmapped": false,
+   "gist": "打出时：1艘商船得豌豆+豆子+亚麻，2艘再加谷物，3艘加卷心菜，4艘加水果。",
+   "pts": 2,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 146,
+   "wr": 48.6,
+   "lo": 40.7,
+   "hi": 56.7,
+   "lift": -1.4,
+   "avg": 215.5,
+   "no": "100b",
+   "zh": "送葬者",
+   "unmapped": false,
+   "gist": "每在探索版图上放1个卢恩石，得1银币。",
+   "pts": -1,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 33,
+   "wr": 48.5,
+   "lo": 32.5,
+   "hi": 64.8,
+   "lift": -1.5,
+   "avg": 212.3,
+   "no": "",
+   "zh": "牛倌*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 31,
+   "wr": 48.4,
+   "lo": 32.0,
+   "hi": 65.2,
+   "lift": -1.6,
+   "avg": 212.6,
+   "no": "74A",
+   "zh": "牧牛人",
+   "unmapped": false,
+   "gist": "打出时可付2银币+1谷物，得1头未怀孕的牛。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 21,
+   "wr": 47.6,
+   "lo": 28.3,
+   "hi": 67.6,
+   "lift": -2.4,
+   "avg": 213.9,
+   "no": "",
+   "zh": "赞助商*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 17,
+   "wr": 47.1,
+   "lo": 26.2,
+   "hi": 69.0,
+   "lift": -2.9,
+   "avg": 210.6,
+   "no": "148C",
+   "zh": "香料商人",
+   "unmapped": false,
+   "gist": "每次付≥1木头建商船后，可花3银币买1香料。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 49,
+   "wr": 46.9,
+   "lo": 33.7,
+   "hi": 60.6,
+   "lift": -3.1,
+   "avg": 207.1,
+   "no": "72B",
+   "zh": "雅尔",
+   "unmapped": false,
+   "gist": "打出时可花等于当前轮数的银币买1座石屋。",
+   "pts": 2,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 46,
+   "wr": 46.7,
+   "lo": 33.1,
+   "hi": 60.8,
+   "lift": -3.3,
+   "avg": 214.5,
+   "no": "48A",
+   "zh": "农场主",
+   "unmapped": false,
+   "gist": "随时可弃掉牛棚里1头牛，换1珠宝。",
+   "pts": 3,
+   "deck": "A",
+   "type": "任意时刻"
+  },
+  {
+   "n": 38,
+   "wr": 46.1,
+   "lo": 31.3,
+   "hi": 61.5,
+   "lift": -3.9,
+   "avg": 218.9,
+   "no": "167B",
+   "zh": "试味者",
+   "unmapped": false,
+   "gist": "宴会阶段开始时，供应区有1/≥2香料则得1/2银币。",
+   "pts": 3,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 89,
+   "wr": 46.1,
+   "lo": 36.1,
+   "hi": 56.4,
+   "lift": -3.9,
+   "avg": 212.1,
+   "no": "112b",
+   "zh": "酒保",
+   "unmapped": false,
+   "gist": "每次使用手工制造行动格，额外得1蜂蜜酒。",
+   "pts": 0,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 25,
+   "wr": 46.0,
+   "lo": 28.3,
+   "hi": 64.7,
+   "lift": -4.0,
+   "avg": 218.7,
+   "no": "",
+   "zh": "箍桶匠*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 72,
+   "wr": 45.8,
+   "lo": 34.8,
+   "hi": 57.3,
+   "lift": -4.2,
+   "avg": 215.9,
+   "no": "31C",
+   "zh": "仓库管理员",
+   "unmapped": false,
+   "gist": "打出时若供应区某种物资恰好有3个，再得1个同种物资。",
+   "pts": 2,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 83,
+   "wr": 45.8,
+   "lo": 35.5,
+   "hi": 56.5,
+   "lift": -4.2,
+   "avg": 213.4,
+   "no": "153a",
+   "zh": "老练的猎人",
+   "unmapped": false,
+   "gist": "需要掷骰的行动最多可掷4次（原为3次）。",
+   "pts": 2,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 36,
+   "wr": 45.8,
+   "lo": 30.8,
+   "hi": 61.7,
+   "lift": -4.2,
+   "avg": 212.4,
+   "no": "119b",
+   "zh": "送奶工",
+   "unmapped": false,
+   "gist": "每次使用每周集市行动格，额外得1牛奶。",
+   "pts": 1,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 66,
+   "wr": 45.5,
+   "lo": 34.0,
+   "hi": 57.4,
+   "lift": -4.5,
+   "avg": 207.2,
+   "no": "152A",
+   "zh": "商人",
+   "unmapped": false,
+   "gist": "每次执行「升级3件/4件物资」时，可对其中1件再升级1次。",
+   "pts": 1,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 33,
+   "wr": 45.5,
+   "lo": 29.8,
+   "hi": 62.0,
+   "lift": -4.5,
+   "avg": 209.7,
+   "no": "78B",
+   "zh": "旅行商人",
+   "unmapped": false,
+   "gist": "打出时按商船数1/2/3/4，把2/4/6/7块物资翻到另一面。",
+   "pts": 0,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 65,
+   "wr": 45.4,
+   "lo": 33.9,
+   "hi": 57.4,
+   "lift": -4.6,
+   "avg": 211.6,
+   "no": "137a",
+   "zh": "格斗家",
+   "unmapped": false,
+   "gist": "突袭/抢劫时可用长矛代替长剑（可任意混用）。",
+   "pts": 3,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 65,
+   "wr": 45.4,
+   "lo": 33.9,
+   "hi": 57.4,
+   "lift": -4.6,
+   "avg": 209.6,
+   "no": "181C",
+   "zh": "船帆修补者",
+   "unmapped": false,
+   "gist": "打出后一旦有≥3艘商船/长船，若当时收入≤4/9/30，得3/2/1羊毛。",
+   "pts": 1,
+   "deck": "C",
+   "type": "条件触发"
+  },
+  {
+   "n": 71,
+   "wr": 45.1,
+   "lo": 34.0,
+   "hi": 56.6,
+   "lift": -4.9,
+   "avg": 213.4,
+   "no": "132b",
+   "zh": "狂战士",
+   "unmapped": false,
+   "gist": "每次抢劫前可把该长船上1铁矿放回，本次抢劫每颗骰+3。",
+   "pts": 2,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 81,
+   "wr": 45.1,
+   "lo": 34.7,
+   "hi": 55.9,
+   "lift": -4.9,
+   "avg": 216.4,
+   "no": "",
+   "zh": "草药园丁*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 72,
+   "wr": 44.4,
+   "lo": 33.5,
+   "hi": 55.9,
+   "lift": -5.6,
+   "avg": 213.2,
+   "no": "81C",
+   "zh": "军需官",
+   "unmapped": false,
+   "gist": "打出时可买1艘长船，每张长剑减1银币（弓箭、长矛各算半张）。",
+   "pts": 2,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 18,
+   "wr": 44.4,
+   "lo": 24.6,
+   "hi": 66.3,
+   "lift": -5.6,
+   "avg": 214.3,
+   "no": "156B",
+   "zh": "碎石者",
+   "unmapped": false,
+   "gist": "行动阶段单次维京人行动得≥1石块时，额外得1银币。",
+   "pts": 2,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 34,
+   "wr": 44.1,
+   "lo": 28.9,
+   "hi": 60.5,
+   "lift": -5.9,
+   "avg": 214.2,
+   "no": "50A",
+   "zh": "卢恩石雕刻工",
+   "unmapped": false,
+   "gist": "随时可用1卢恩石换1兽皮。",
+   "pts": 2,
+   "deck": "A",
+   "type": "任意时刻"
+  },
+  {
+   "n": 67,
+   "wr": 44.0,
+   "lo": 32.8,
+   "hi": 55.9,
+   "lift": -6.0,
+   "avg": 214.6,
+   "no": "25B",
+   "zh": "肉贩",
+   "unmapped": false,
+   "gist": "打出时每艘商船得1腌肉。",
+   "pts": 1,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 49,
+   "wr": 43.9,
+   "lo": 30.9,
+   "hi": 57.7,
+   "lift": -6.1,
+   "avg": 213.0,
+   "no": "61C",
+   "zh": "码头主",
+   "unmapped": false,
+   "gist": "打出时可卖掉1艘长船换8银币。",
+   "pts": 3,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 62,
+   "wr": 43.5,
+   "lo": 31.9,
+   "hi": 55.9,
+   "lift": -6.5,
+   "avg": 214.9,
+   "no": "58A",
+   "zh": "亚麻籽榨油工",
+   "unmapped": false,
+   "gist": "随时可用2亚麻换3油。",
+   "pts": 3,
+   "deck": "A",
+   "type": "任意时刻"
+  },
+  {
+   "n": 66,
+   "wr": 43.2,
+   "lo": 31.9,
+   "hi": 55.2,
+   "lift": -6.8,
+   "avg": 213.5,
+   "no": "85C",
+   "zh": "吹号者",
+   "unmapped": false,
+   "gist": "打出时可付1银币狩猎一次，和/或付2银币铺设陷阱一次。",
+   "pts": 0,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 74,
+   "wr": 43.2,
+   "lo": 32.6,
+   "hi": 54.6,
+   "lift": -6.8,
+   "avg": 213.4,
+   "no": "120b",
+   "zh": "中间商",
+   "unmapped": false,
+   "gist": "每次使用每周集市行动格后，可付1银币执行一次「升级1件物资」。",
+   "pts": 2,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 35,
+   "wr": 42.9,
+   "lo": 28.0,
+   "hi": 59.1,
+   "lift": -7.1,
+   "avg": 214.4,
+   "no": "29B",
+   "zh": "肉库保管员",
+   "unmapped": false,
+   "gist": "打出时供应区每有1对「野味+鲸肉」，得1腌肉。",
+   "pts": 3,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 35,
+   "wr": 41.4,
+   "lo": 26.8,
+   "hi": 57.8,
+   "lift": -8.6,
+   "avg": 215.9,
+   "no": "90C",
+   "zh": "剑斗士",
+   "unmapped": false,
+   "gist": "每次突袭前可把该长船上1铁矿放回，本次突袭每颗骰+2。",
+   "pts": 2,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 77,
+   "wr": 37.7,
+   "lo": 27.7,
+   "hi": 48.8,
+   "lift": -12.3,
+   "avg": 211.7,
+   "no": "7A",
+   "zh": "磨坊工",
+   "unmapped": false,
+   "gist": "每轮宴会阶段后，供应区有1/2个谷物则得1/2银币。",
+   "pts": 3,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 44,
+   "wr": 37.5,
+   "lo": 24.7,
+   "hi": 52.3,
+   "lift": -12.5,
+   "avg": 213.4,
+   "no": "154a",
+   "zh": "伐木工",
+   "unmapped": false,
+   "gist": "行动阶段单次维京人行动得≥2木头时，额外得1银币。",
+   "pts": 2,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 24,
+   "wr": 37.5,
+   "lo": 21.2,
+   "hi": 57.3,
+   "lift": -12.5,
+   "avg": 212.1,
+   "no": "95A",
+   "zh": "流浪者",
+   "unmapped": false,
+   "gist": "无收获的轮次，可从一个山脉板块拿2个资源。",
+   "pts": 1,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 38,
+   "wr": 36.8,
+   "lo": 23.4,
+   "hi": 52.7,
+   "lift": -13.2,
+   "avg": 215.7,
+   "no": "11c",
+   "zh": "鱼叉猎人",
+   "unmapped": false,
+   "gist": "打出时拿1张长矛；之后捕鲸时每用1张长矛，每颗骰-2而非-1。",
+   "pts": 1,
+   "deck": "C",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 36,
+   "wr": 36.1,
+   "lo": 22.5,
+   "hi": 52.4,
+   "lift": -13.9,
+   "avg": 211.8,
+   "no": "44B",
+   "zh": "老练的裁缝",
+   "unmapped": false,
+   "gist": "随时可用1兽皮+1羊毛+1亚麻布换1衣服+3银币。",
+   "pts": 1,
+   "deck": "B",
+   "type": "任意时刻"
+  },
+  {
+   "n": 30,
+   "wr": 33.3,
+   "lo": 19.2,
+   "hi": 51.2,
+   "lift": -16.7,
+   "avg": 206.6,
+   "no": "51B",
+   "zh": "老练的石匠",
+   "unmapped": false,
+   "gist": "随时可用1卢恩石换1银币，再加1牛奶或1卷心菜。",
+   "pts": 1,
+   "deck": "B",
+   "type": "任意时刻"
+  },
+  {
+   "n": 23,
+   "wr": 32.6,
+   "lo": 17.2,
+   "hi": 53.0,
+   "lift": -17.4,
+   "avg": 212.7,
+   "no": "80B",
+   "zh": "牧童",
+   "unmapped": false,
+   "gist": "打出时可花2银币得1只未怀孕的羊。",
+   "pts": 0,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 17,
+   "wr": 32.4,
+   "lo": 15.3,
+   "hi": 56.0,
+   "lift": -17.6,
+   "avg": 212.6,
+   "no": "",
+   "zh": "山脉守卫*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 13,
+   "wr": 30.8,
+   "lo": 12.7,
+   "hi": 57.6,
+   "lift": -19.2,
+   "avg": 208.7,
+   "no": "102B",
+   "zh": "毛皮商人",
+   "unmapped": false,
+   "gist": "行动格给你「升级1件物资」时，可改为用1野味或1丝绸换1毛皮。",
+   "pts": 2,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 26,
+   "wr": 30.8,
+   "lo": 16.5,
+   "hi": 50.0,
+   "lift": -19.2,
+   "avg": 212.7,
+   "no": "",
+   "zh": "象牙雕塑者*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 15,
+   "wr": 26.7,
+   "lo": 10.9,
+   "hi": 52.0,
+   "lift": -23.3,
+   "avg": 201.7,
+   "no": "123C",
+   "zh": "油贩",
+   "unmapped": false,
+   "gist": "每次用带「升级1件物资」的行动格后，可用1油换1银器。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 12,
+   "wr": 16.7,
+   "lo": 4.7,
+   "hi": 44.8,
+   "lift": -33.3,
+   "avg": 207.0,
+   "no": "188C",
+   "zh": "采矿工人",
+   "unmapped": false,
+   "gist": "打出时1/2/3/4人局得0/1/2/3银币；每拿山脉末格「2银币」多得1银币。",
+   "pts": 0,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 12,
+   "wr": 16.7,
+   "lo": 4.7,
+   "hi": 44.8,
+   "lift": -33.3,
+   "avg": 199.8,
+   "no": "144B",
+   "zh": "猎鹿人",
+   "unmapped": false,
+   "gist": "每次狩猎成功，可花2银币买1块皮与骨。",
+   "pts": 0,
+   "deck": "B",
+   "type": "每次/持续"
+  }
+ ],
+ "pairs": [
+  {
+   "n": 175,
+   "wr": 78.6,
+   "lo": 71.9,
+   "hi": 84.0,
+   "lift": 28.6,
+   "a": "bear_island",
+   "b": "tierra_del_fuego",
+   "zh": "熊岛 + 火地岛",
+   "icon": "熊+火",
+   "wr_a": 48.0,
+   "n_a": 1433,
+   "wr_b": 58.9,
+   "n_b": 1448,
+   "mean": 53.5,
+   "pair_lift": 25.1
+  },
+  {
+   "n": 483,
+   "wr": 74.4,
+   "lo": 70.4,
+   "hi": 78.1,
+   "lift": 24.4,
+   "a": "isle_of_mull",
+   "b": "tierra_del_fuego",
+   "zh": "马尔岛 + 火地岛",
+   "icon": "马+火",
+   "wr_a": 57.8,
+   "n_a": 1447,
+   "wr_b": 58.9,
+   "n_b": 1448,
+   "mean": 58.4,
+   "pair_lift": 16.1
+  },
+  {
+   "n": 35,
+   "wr": 72.9,
+   "lo": 56.4,
+   "hi": 84.8,
+   "lift": 22.9,
+   "a": "labrador",
+   "b": "limerick",
+   "zh": "拉布拉多半岛 + 利默里克",
+   "icon": "拉+利",
+   "wr_a": 58.1,
+   "n_a": 452,
+   "wr_b": 42.2,
+   "n_b": 206,
+   "mean": 50.2,
+   "pair_lift": 22.7
+  },
+  {
+   "n": 345,
+   "wr": 66.2,
+   "lo": 61.1,
+   "hi": 71.0,
+   "lift": 16.2,
+   "a": "isle_of_mull",
+   "b": "lofoten",
+   "zh": "马尔岛 + 罗弗敦群岛",
+   "icon": "马+罗",
+   "wr_a": 57.8,
+   "n_a": 1447,
+   "wr_b": 51.8,
+   "n_b": 1152,
+   "mean": 54.8,
+   "pair_lift": 11.4
+  },
+  {
+   "n": 52,
+   "wr": 62.5,
+   "lo": 48.9,
+   "hi": 74.4,
+   "lift": 12.5,
+   "a": "labrador",
+   "b": "newfoundland",
+   "zh": "拉布拉多半岛 + 纽芬兰岛",
+   "icon": "拉+纽",
+   "wr_a": 58.1,
+   "n_a": 452,
+   "wr_b": 55.6,
+   "n_b": 405,
+   "mean": 56.8,
+   "pair_lift": 5.7
+  },
+  {
+   "n": 126,
+   "wr": 59.5,
+   "lo": 50.8,
+   "hi": 67.7,
+   "lift": 9.5,
+   "a": "isle_of_man",
+   "b": "newfoundland",
+   "zh": "马恩岛 + 纽芬兰岛",
+   "icon": "马+纽",
+   "wr_a": 48.2,
+   "n_a": 1096,
+   "wr_b": 55.6,
+   "n_b": 405,
+   "mean": 51.9,
+   "pair_lift": 7.6
+  },
+  {
+   "n": 91,
+   "wr": 55.5,
+   "lo": 45.3,
+   "hi": 65.3,
+   "lift": 5.5,
+   "a": "cork",
+   "b": "islay",
+   "zh": "科克 + 艾雷岛",
+   "icon": "科+艾",
+   "wr_a": 41.7,
+   "n_a": 372,
+   "wr_b": 52.0,
+   "n_b": 844,
+   "mean": 46.8,
+   "pair_lift": 8.7
+  },
+  {
+   "n": 322,
+   "wr": 53.1,
+   "lo": 47.7,
+   "hi": 58.5,
+   "lift": 3.1,
+   "a": "islay",
+   "b": "lofoten",
+   "zh": "艾雷岛 + 罗弗敦群岛",
+   "icon": "艾+罗",
+   "wr_a": 52.0,
+   "n_a": 844,
+   "wr_b": 51.8,
+   "n_b": 1152,
+   "mean": 51.9,
+   "pair_lift": 1.2
+  },
+  {
+   "n": 34,
+   "wr": 50.0,
+   "lo": 34.1,
+   "hi": 65.9,
+   "lift": 0.0,
+   "a": "cork",
+   "b": "greenland",
+   "zh": "科克 + 格陵兰岛",
+   "icon": "科+格",
+   "wr_a": 41.7,
+   "n_a": 372,
+   "wr_b": 46.7,
+   "n_b": 331,
+   "mean": 44.2,
+   "pair_lift": 5.8
+  },
+  {
+   "n": 311,
+   "wr": 47.9,
+   "lo": 42.4,
+   "hi": 53.5,
+   "lift": -2.1,
+   "a": "iceland",
+   "b": "isle_of_man",
+   "zh": "冰岛 + 马恩岛",
+   "icon": "冰+马",
+   "wr_a": 48.0,
+   "n_a": 816,
+   "wr_b": 48.2,
+   "n_b": 1096,
+   "mean": 48.1,
+   "pair_lift": -0.2
+  },
+  {
+   "n": 394,
+   "wr": 47.6,
+   "lo": 42.7,
+   "hi": 52.5,
+   "lift": -2.4,
+   "a": "bear_island",
+   "b": "iceland",
+   "zh": "熊岛 + 冰岛",
+   "icon": "熊+冰",
+   "wr_a": 48.0,
+   "n_a": 1433,
+   "wr_b": 48.0,
+   "n_b": 816,
+   "mean": 48.0,
+   "pair_lift": -0.4
+  },
+  {
+   "n": 47,
+   "wr": 43.6,
+   "lo": 30.5,
+   "hi": 57.7,
+   "lift": -6.4,
+   "a": "baffin_island",
+   "b": "isle_of_skye",
+   "zh": "巴芬岛 + 斯凯岛",
+   "icon": "巴+斯",
+   "wr_a": 35.0,
+   "n_a": 157,
+   "wr_b": 41.0,
+   "n_b": 635,
+   "mean": 38.0,
+   "pair_lift": 5.6
+  },
+  {
+   "n": 36,
+   "wr": 41.7,
+   "lo": 27.1,
+   "hi": 57.8,
+   "lift": -8.3,
+   "a": "greenland",
+   "b": "limerick",
+   "zh": "格陵兰岛 + 利默里克",
+   "icon": "格+利",
+   "wr_a": 46.7,
+   "n_a": 331,
+   "wr_b": 42.2,
+   "n_b": 206,
+   "mean": 44.5,
+   "pair_lift": -2.8
+  },
+  {
+   "n": 33,
+   "wr": 10.6,
+   "lo": 4.0,
+   "hi": 25.5,
+   "lift": -39.4,
+   "a": "isle_of_skye",
+   "b": "waterford",
+   "zh": "斯凯岛 + 沃特福德",
+   "icon": "斯+沃",
+   "wr_a": 41.0,
+   "n_a": 635,
+   "wr_b": 24.3,
+   "n_b": 115,
+   "mean": 32.7,
+   "pair_lift": -22.1
+  }
+ ],
+ "dice": [
+  {
+   "kind": "raid",
+   "zh": "小打劫 (d8)",
+   "icon": "小",
+   "groups": {
+    "win": {
+     "use": 99.1,
+     "avg": 3.37,
+     "succ": 89.9,
+     "acts": 4841
+    },
+    "lose": {
+     "use": 97.1,
+     "avg": 3.17,
+     "succ": 85.5,
+     "acts": 4553
+    }
+   }
+  },
+  {
+   "kind": "pillage",
+   "zh": "大打劫 (d12)",
+   "icon": "大",
+   "groups": {
+    "win": {
+     "use": 93.9,
+     "avg": 2.26,
+     "succ": 90.6,
+     "acts": 3240
+    },
+    "lose": {
+     "use": 93.4,
+     "avg": 2.3,
+     "succ": 87.4,
+     "acts": 3304
+    }
+   }
+  },
+  {
+   "kind": "whaling",
+   "zh": "捕鲸 (d12)",
+   "icon": "鲸",
+   "groups": {
+    "win": {
+     "use": 60.8,
+     "avg": 0.89,
+     "succ": 71.0,
+     "acts": 1273
+    },
+    "lose": {
+     "use": 60.5,
+     "avg": 0.95,
+     "succ": 67.0,
+     "acts": 1367
+    }
+   }
+  },
+  {
+   "kind": "hunting",
+   "zh": "打猎 (d8)",
+   "icon": "猎",
+   "groups": {
+    "win": {
+     "use": 97.2,
+     "avg": 3.01,
+     "succ": 79.3,
+     "acts": 4318
+    },
+    "lose": {
+     "use": 98.0,
+     "avg": 3.59,
+     "succ": 75.5,
+     "acts": 5152
+    }
+   }
+  },
+  {
+   "kind": "fishing",
+   "zh": "捕鱼 (d8)",
+   "icon": "鱼",
+   "groups": {
+    "win": {
+     "use": 89.2,
+     "avg": 1.71,
+     "succ": 81.3,
+     "acts": 2448
+    },
+    "lose": {
+     "use": 89.7,
+     "avg": 1.86,
+     "succ": 78.1,
+     "acts": 2669
+    }
+   }
+  },
+  {
+   "kind": "plunder",
+   "zh": "掠夺 (免骰)",
+   "icon": "掠",
+   "groups": {
+    "win": {
+     "use": 0.2,
+     "avg": 0.0,
+     "succ": 100.0,
+     "acts": 3
+    },
+    "lose": {
+     "use": 0.4,
+     "avg": 0.0,
+     "succ": 100.0,
+     "acts": 6
+    }
+   }
+  }
+ ],
+ "emigration": {
+  "n_win": 1435,
+  "n_lose": 1435,
+  "groups": [
+   {
+    "title": "移民船数分布",
+    "items": [
+     {
+      "label": "0 艘",
+      "icon": "0",
+      "win": 3.7,
+      "lose": 5.5
+     },
+     {
+      "label": "1 艘",
+      "icon": "1",
+      "win": 27.4,
+      "lose": 30.2
+     },
+     {
+      "label": "2 艘",
+      "icon": "2",
+      "win": 43.1,
+      "lose": 43.3
+     },
+     {
+      "label": "3+ 艘",
+      "icon": "3+",
+      "win": 25.8,
+      "lose": 21.0
+     }
+    ],
+    "foots": [
+     {
+      "label": "人均移民船",
+      "win": 1.95,
+      "lose": 1.83,
+      "unit": "艘"
+     }
+    ]
+   },
+   {
+    "title": "大小移民分布",
+    "items": [
+     {
+      "label": "不移民",
+      "icon": "无",
+      "win": 3.7,
+      "lose": 5.5
+     },
+     {
+      "label": "只小移民",
+      "icon": "小",
+      "win": 64.0,
+      "lose": 65.4
+     },
+     {
+      "label": "只大移民",
+      "icon": "大",
+      "win": 8.2,
+      "lose": 7.0
+     },
+     {
+      "label": "大小都用",
+      "icon": "混",
+      "win": 24.0,
+      "lose": 22.1
+     }
+    ],
+    "foots": [
+     {
+      "label": "人均大移民",
+      "win": 0.38,
+      "lose": 0.33,
+      "unit": "艘"
+     },
+     {
+      "label": "人均小移民",
+      "win": 1.58,
+      "lose": 1.5,
+      "unit": "艘"
+     }
+    ]
+   }
+  ]
+ },
+ "crown": {
+  "groups": [
+   {
+    "title": "拿到皇冠 vs 没拿到（皇冠全局仅一块）",
+    "items": [
+     {
+      "n": 1206,
+      "wr": 57.1,
+      "lo": 54.3,
+      "hi": 59.9,
+      "lift": 7.1,
+      "label": "拿到皇冠",
+      "icon": "冠",
+      "avg": 216.5
+     },
+     {
+      "n": 1714,
+      "wr": 45.0,
+      "lo": 42.7,
+      "hi": 47.4,
+      "lift": -5.0,
+      "label": "没拿到皇冠",
+      "icon": "无",
+      "avg": 212.1
+     }
+    ]
+   }
+  ],
+  "holders": 1206,
+  "lose": 506,
+  "tie": 23,
+  "lose_pct": 42.0,
+  "games_pct": 82.6
+ }
+};
+
+const META = DATA.meta;
+document.getElementById("corpus").innerHTML =
+  `<span>口径：<b>${META.games}</b> 局 mini2 长局（二人） / <b>${META.samples}</b> 玩家样本` +
+  `（平局各记 0.5 胜，共 ${META.ties} 局平局，全体样本胜率 ${META.overall}%）</span>` +
+  `<span><b>Wilson 95% CI</b>（z=1.96）</span>` +
+  `<span>相关非因果（行为与玩家水平/局势混杂）</span>`;
+
+const GRADE_CLASS = {"S":"g-S","A":"g-A","B":"g-B","C":"g-C","数据不足":"g-na"};
+const ICON_BG = ["#c98f3d","#4f86c6","#5f9e8f","#9a6fb0","#b0705f","#6f8fc0",
+                 "#a8934f","#5fa0b0","#b06f8f","#7a9e5f"];
+
+/* 每个视图自适应横轴：覆盖所有 CI 端点，向 5% 取整，至少含 50% */
+function domainOf(items){
+  let lo = 50, hi = 50;
+  for(const it of items){ if(it.n>0){ lo=Math.min(lo,it.lo); hi=Math.max(hi,it.hi);} }
+  lo = Math.max(0, Math.floor((lo-1.5)/5)*5);
+  hi = Math.min(100, Math.ceil((hi+1.5)/5)*5);
+  if(hi-lo < 20){ const m=(hi+lo)/2; lo=Math.max(0,m-10); hi=Math.min(100,m+10); }
+  return [lo,hi];
+}
+const X = (v,d)=>((v-d[0])/(d[1]-d[0])*100);
+function ticksOf(d){
+  const t=[];
+  for(let v=Math.ceil(d[0]/10)*10; v<=d[1]; v+=10) t.push(v);
+  if(d[0]<=50 && 50<=d[1] && !t.includes(50)) t.push(50);
+  return [...new Set(t)].sort((a,b)=>a-b);
+}
+
+function sigOf(it){ return it.n>=10 && (it.lo>50 || it.hi<50); }
+
+const rowsEl = document.getElementById("rows");
+const scaleEl = document.getElementById("scale");
+const scaleLabel = document.getElementById("scale-label");
+const noteEl = document.getElementById("viewnote");
+const tip = document.getElementById("tip");
+
+/* 每个视图顶部的口径说明（全部视图共用 1460 局 / Wilson CI / 相关非因果口径） */
+function viewNote(view){
+  const base = `口径：<b>${META.games}</b> 局 / <b>${META.samples}</b> 玩家样本 · `;
+  const tail = ` · <b>相关非因果</b>`;
+  switch(view){
+    case "islands": return base + `样本 = 本局拿过该岛的玩家 · 角标 = S/A/B/C 分级` + tail;
+    case "pairs": return base + `共现 <b>n≥30</b> 的岛对按组合胜率降序 · <b>组合 lift = 组合胜率 − 两岛单拿（边缘）胜率均值</b> · 悬停行查看单拿胜率明细` + tail;
+    case "sheds": return base + `R1-4 建造口径（R5+ 建造不计入）` + tail;
+    case "cards": return base + `主榜 n≥10 · 悬停行查看卡号/分值/效果摘要` + tail;
+    case "dice": return base + `胜者 vs 败者对比（胜 <b>${META.dice_win}</b> 人 / 负 <b>${META.dice_lose}</b> 人，平局 ${META.dice_tie} 人未计入）· 条形 = <b>掷骰成功率</b>（<span style="color:var(--gold)">金=胜组</span> / <span style="color:var(--blue)">蓝=负组</span>）· 小字 = 使用率与人均次数` + tail;
+    case "emigration": {
+      const e = DATA.emigration;
+      return base + `赢家画像：胜者 vs 败者对比（胜 <b>${e.n_win}</b> 人 / 负 <b>${e.n_lose}</b> 人，平局未计入）· 条形 = <b>占本组比例</b>（<span style="color:var(--gold)">金=胜组</span> / <span style="color:var(--blue)">蓝=负组</span>）· 移民判定 = 纯银币支付且金额 = 轮数（大移民 = 同一行动内打出职业卡；减费卡 R4+ 认 金额=轮数−1）` + tail;
+    }
+    case "crown": {
+      const c = DATA.crown;
+      return base + `皇冠判定 = gain_items / exchange 拿取「大不列颠皇冠 / 英格兰王冠」（皇冠全局仅一块，主要经 d12 大打劫获得）· <b>${c.games_pct}%</b> 的局有人拿到皇冠；<b>${Math.round(c.lose_pct)}%</b> 的持有者依然落败（${c.lose}/${c.holders} 人）——皇冠是强打劫链的标志物而非胜利原因` + tail;
+    }
+  }
+  return "";
+}
+
+function renderScale(d){
+  scaleEl.innerHTML = ticksOf(d).map(v=>{
+    const cls = v===50 ? "scale-tick mid" : "scale-tick";
+    return `<span class="${cls}" style="left:${X(v,d)}%">${v}%</span>`;
+  }).join("");
+}
+
+function gridHtml(d){
+  let h = ticksOf(d).filter(v=>v!==50)
+    .map(v=>`<div class="gridline" style="left:${X(v,d)}%"></div>`).join("");
+  if(d[0]<=50 && 50<=d[1])
+    h += `<div class="midline" style="left:${X(50,d)}%"></div>`;
+  return h;
+}
+
+function barHtml(it,d){
+  if(it.n===0) return `<span style="color:var(--faint);font-size:12px">无样本</span>`;
+  const x50=X(50,d), xw=X(it.wr,d);
+  const left=Math.min(x50,xw), width=Math.abs(xw-x50);
+  const side = it.wr>=50 ? "pos":"neg";
+  const clo=X(it.lo,d), chi=X(it.hi,d);
+  return gridHtml(d)
+    + `<div class="bar ${side}" style="left:${left}%;width:${Math.max(width,0.4)}%"></div>`
+    + `<div class="ci" style="left:${clo}%;width:${Math.max(chi-clo,0.6)}%"></div>`
+    + `<div class="dot" style="left:${xw}%"></div>`;
+}
+
+function valHtml(it, extra){
+  if(it.n===0) return `<div class="val"><div class="pct" style="color:var(--faint)">—</div>`
+    + `<div class="n">n=0 / ${META.samples}</div></div>`;
+  const side = it.wr>=50 ? "pos":"neg";
+  return `<div class="val"><div class="pct ${side}">${it.wr.toFixed(1)}%</div>`
+    + `<div class="n">n=${it.n} / ${META.samples}${extra||""}</div></div>`;
+}
+
+function badges(it){
+  let b="";
+  if(it.n<10) b+=`<span class="badge low">数据不足</span>`;
+  else if(sigOf(it)) b+=`<span class="badge sig">显著</span>`;
+  return b;
+}
+
+/* ---------- 排名式视图（岛屿 / 手工工棚 / 职业卡 / 岛屿组合） ---------- */
+function renderRank(view){
+  const items = DATA[view];
+  const d = domainOf(items);
+  renderScale(d);
+  let html="";
+  items.forEach((it,i)=>{
+    const dim = it.n<10 ? " dim":"";
+    let iconTxt, iconBg, corner="";
+    if(view==="cards"){ iconTxt = it.no||"?"; iconBg = ICON_BG[i%ICON_BG.length]; }
+    else if(view==="pairs"){ iconTxt = it.icon; iconBg = ICON_BG[i%ICON_BG.length]; }
+    else{
+      iconTxt = it.zh.charAt(0);
+      iconBg = view==="islands"
+        ? ({"S":"#d4a017","A":"#3fa97a","B":"#4f86c6","C":"#7a8699"}[it.grade]||"#5b7089")
+        : ICON_BG[i%ICON_BG.length];
+      if(view==="islands")
+        corner = `<span class="corner ${GRADE_CLASS[it.grade]||"g-na"}">${it.grade==="数据不足"?"–":it.grade}</span>`;
+    }
+    const small = (view==="pairs") ? " small" : "";
+    let sub="";
+    if(view==="islands") sub=`出场 ${it.n} 次 · 场均 ${it.avg} 分`;
+    if(view==="sheds") sub=`出场 ${it.n} 次 · 场均 ${it.avg} 分（R1-4 建造口径）`;
+    if(view==="pairs"){
+      const lp = it.pair_lift>=0;
+      sub=`<span class="badge ${lp?"lift-pos":"lift-neg"}">组合 lift ${lp?"+":""}${it.pair_lift.toFixed(1)}pp</span>`
+        + ` 共现 ${it.n} 次`;
+    }
+    if(view==="cards"){
+      const lp = it.lift>=0;
+      sub=`<span class="badge ${lp?"lift-pos":"lift-neg"}">lift ${lp?"+":""}${it.lift.toFixed(1)}pp</span>`
+        + ` 出场 ${it.n} 次 · 场均 ${it.avg} 分`;
+    }
+    const tipAttr = view==="cards" ? ` data-card="${i}"`
+                  : view==="pairs" ? ` data-pair="${i}"` : "";
+    html += `<div class="row${dim}"${tipAttr}>
+      <div class="rank">${i+1}</div>
+      <div class="icon${small}" style="background:${iconBg}">${iconTxt}${corner}</div>
+      <div class="name-col"><div class="name">${it.zh}${badges(it)}</div>
+        <div class="sub">${sub}</div></div>
+      <div class="track">${barHtml(it,d)}</div>
+      ${valHtml(it)}
+    </div>`;
+  });
+  rowsEl.innerHTML = html;
+  if(view==="cards") bindCardTips();
+  if(view==="pairs") bindPairTips();
+}
+
+/* ---------- 分桶组视图（皇冠） ---------- */
+function renderGroups(view){
+  const groups = DATA.crown.groups;
+  const all = groups.flatMap(g=>g.items);
+  const d = domainOf(all);
+  renderScale(d);
+  let html="";
+  groups.forEach(g=>{
+    html += `<div class="group-title">${g.title}</div>`;
+    g.items.forEach((it,i)=>{
+      const dim = it.n<10 ? " dim":"";
+      const small = (it.icon||"").length>1 ? " small" : "";
+      const lp = it.lift>=0;
+      const sub = it.n===0 ? "无样本"
+        : `<span class="badge ${lp?"lift-pos":"lift-neg"}">lift ${lp?"+":""}${it.lift.toFixed(1)}pp</span>`
+        + ` n=${it.n} · 场均 ${it.avg} 分`;
+      html += `<div class="row${dim}">
+        <div class="rank">${i+1}</div>
+        <div class="icon${small}" style="background:${ICON_BG[(i+2)%ICON_BG.length]}">${it.icon}</div>
+        <div class="name-col"><div class="name">${it.label}${badges(it)}</div>
+          <div class="sub">${sub}</div></div>
+        <div class="track">${barHtml(it,d)}</div>
+        ${valHtml(it)}
+      </div>`;
+    });
+  });
+  rowsEl.innerHTML = html;
+}
+
+/* ---------- 骰子行动：胜者 vs 败者对比 ---------- */
+function renderDice(){
+  const items = DATA.dice;
+  const rates = [];
+  items.forEach(it=>{ for(const g of ["win","lose"]){
+    const s = it.groups[g].succ; if(s!=null) rates.push(s); }});
+  let lo = Math.min(...rates), hi = Math.max(...rates);
+  lo = Math.max(0, Math.floor((lo-2)/5)*5);
+  hi = Math.min(100, Math.ceil((hi+2)/5)*5);
+  const d = [lo,hi];
+  renderScale(d);
+  let html="";
+  items.forEach((it,i)=>{
+    const w = it.groups.win, l = it.groups.lose;
+    let bars = gridHtml(d);
+    for(const [g,gr] of [["win",w],["lose",l]]){
+      if(gr.succ==null){
+        bars += `<span class="dlab ${g}" style="left:2px">${g==="win"?"胜":"负"} —（n=${gr.acts} 次出手）</span>`;
+        continue;
+      }
+      const xw = X(gr.succ,d);
+      bars += `<div class="dbar ${g}" style="width:${xw}%"></div>`
+            + `<span class="dlab ${g}" style="left:calc(${xw}% + 5px)">${g==="win"?"胜":"负"} ${gr.succ.toFixed(1)}%</span>`;
+    }
+    const val = `<div class="val"><div class="cmp"><span class="w">胜 ${w.succ==null?"—":w.succ.toFixed(1)+"%"}</span><br><span class="l">负 ${l.succ==null?"—":l.succ.toFixed(1)+"%"}</span></div>`
+      + `<div class="n">成功率</div></div>`;
+    const sub = `使用率 <span style="color:var(--gold)">胜 ${w.use}%</span> / <span style="color:var(--blue)">负 ${l.use}%</span>`
+      + ` · 人均 <span style="color:var(--gold)">胜 ${w.avg}</span> / <span style="color:var(--blue)">负 ${l.avg}</span> 次`;
+    html += `<div class="row">
+      <div class="rank">${i+1}</div>
+      <div class="icon" style="background:${ICON_BG[i%ICON_BG.length]}">${it.icon}</div>
+      <div class="name-col"><div class="name">${it.zh}</div>
+        <div class="sub">${sub}</div></div>
+      <div class="track">${bars}</div>
+      ${val}
+    </div>`;
+  });
+  rowsEl.innerHTML = html;
+}
+
+/* ---------- 移民：赢家画像（胜者 vs 败者双条，样式同骰子行动） ---------- */
+function renderEmigration(){
+  const groups = DATA.emigration.groups;
+  const rates = [];
+  groups.forEach(g=>g.items.forEach(it=>{ rates.push(it.win, it.lose); }));
+  let lo = Math.min(...rates), hi = Math.max(...rates);
+  lo = Math.max(0, Math.floor((lo-2)/5)*5);
+  hi = Math.min(100, Math.ceil((hi+2)/5)*5);
+  const d = [lo,hi];
+  renderScale(d);
+  let html="";
+  groups.forEach(g=>{
+    html += `<div class="group-title">${g.title}<span class="g-sub">占本组（胜 / 负）比例</span></div>`;
+    g.items.forEach((it,i)=>{
+      const small = (it.icon||"").length>1 ? " small" : "";
+      let bars = gridHtml(d);
+      for(const [gr,v] of [["win",it.win],["lose",it.lose]]){
+        const xw = X(v,d);
+        bars += `<div class="dbar ${gr}" style="width:${xw}%"></div>`
+              + `<span class="dlab ${gr}" style="left:calc(${xw}% + 5px)">${gr==="win"?"胜":"负"} ${v.toFixed(1)}%</span>`;
+      }
+      const val = `<div class="val"><div class="cmp"><span class="w">胜 ${it.win.toFixed(1)}%</span><br><span class="l">负 ${it.lose.toFixed(1)}%</span></div>`
+        + `<div class="n">占本组比例</div></div>`;
+      html += `<div class="row">
+        <div class="rank">${i+1}</div>
+        <div class="icon${small}" style="background:${ICON_BG[(i+2)%ICON_BG.length]}">${it.icon}</div>
+        <div class="name-col"><div class="name">${it.label}</div></div>
+        <div class="track">${bars}</div>
+        ${val}
+      </div>`;
+    });
+    if(g.foots && g.foots.length){
+      const parts = g.foots.map(f=>`${f.label} <b><span style="color:var(--gold)">胜 ${f.win.toFixed(2)}</span> / <span style="color:var(--blue)">负 ${f.lose.toFixed(2)}</span></b> ${f.unit}`);
+      html += `<div class="group-foot">${parts.join(" · ")}</div>`;
+    }
+  });
+  rowsEl.innerHTML = html;
+}
+
+function render(view){
+  noteEl.innerHTML = viewNote(view);
+  scaleLabel.textContent = view==="dice" ? "掷骰成功率"
+    : view==="emigration" ? "占本组比例（胜 / 负）" : "胜率 · n / 总样本";
+  if(view==="dice") return renderDice();
+  if(view==="emigration") return renderEmigration();
+  if(view==="crown") return renderGroups(view);
+  return renderRank(view);
+}
+
+/* ---------- tooltip 共用定位 ---------- */
+function followTip(rowEl){
+  rowEl.addEventListener("mousemove",e=>{
+    const w=tip.offsetWidth,h=tip.offsetHeight;
+    let x=e.clientX+18,y=e.clientY+14;
+    if(x+w>innerWidth-12) x=e.clientX-w-14;
+    if(y+h>innerHeight-12) y=innerHeight-h-12;
+    tip.style.left=x+"px"; tip.style.top=y+"px";
+  });
+  rowEl.addEventListener("mouseleave",()=>{ tip.style.display="none"; });
+}
+
+/* ---------- 职业卡 tooltip ---------- */
+function bindCardTips(){
+  rowsEl.querySelectorAll(".row[data-card]").forEach(rowEl=>{
+    const it = DATA.cards[+rowEl.dataset.card];
+    rowEl.addEventListener("mouseenter",()=>{
+      const meta = it.unmapped ? "未映射卡号 · 按原名聚合"
+        : `卡号 ${it.no} · 分值 ${it.pts ?? "?"}${it.type?` · ${it.type}`:""}`;
+      tip.innerHTML = `<div class="t-head">${it.no?it.no+" · ":""}${it.zh}</div>`
+        + `<div class="t-meta">${meta} · n=${it.n} · 胜率 ${it.wr.toFixed(1)}% `
+        + `CI [${it.lo.toFixed(1)}, ${it.hi.toFixed(1)}] · lift ${it.lift>=0?"+":""}${it.lift.toFixed(1)}pp</div>`
+        + `<div class="t-gist">${it.gist||"（无效果摘要）"}</div>`;
+      tip.style.display="block";
+    });
+    followTip(rowEl);
+  });
+}
+
+/* ---------- 岛屿组合 tooltip ---------- */
+function bindPairTips(){
+  rowsEl.querySelectorAll(".row[data-pair]").forEach(rowEl=>{
+    const it = DATA.pairs[+rowEl.dataset.pair];
+    rowEl.addEventListener("mouseenter",()=>{
+      const lp = it.pair_lift>=0;
+      tip.innerHTML = `<div class="t-head">${it.zh}</div>`
+        + `<div class="t-meta">共现 n=${it.n} · 组合胜率 ${it.wr.toFixed(1)}% `
+        + `CI [${it.lo.toFixed(1)}, ${it.hi.toFixed(1)}]</div>`
+        + `<div class="t-gist">单拿胜率：${it.zh.split(" + ")[0]} ${it.wr_a.toFixed(1)}% (n=${it.n_a})`
+        + ` · ${it.zh.split(" + ")[1]} ${it.wr_b.toFixed(1)}% (n=${it.n_b})<br>`
+        + `两者边缘均值 ${it.mean.toFixed(1)}% · 组合 lift <b style="color:${lp?"#8fd9a8":"#e8a0a0"}">${lp?"+":""}${it.pair_lift.toFixed(1)}pp</b>`
+        + `（正 = 协同迹象，负 = 相克迹象；相关非因果）</div>`;
+      tip.style.display="block";
+    });
+    followTip(rowEl);
+  });
+}
+
+/* ---------- Tab ---------- */
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    render(btn.dataset.view);
+  });
+});
+render("islands");
+</script>
+</body>
+</html>
