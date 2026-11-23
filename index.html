@@ -167,6 +167,9 @@
     font-weight:600;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.12)}
   .pie-table td{padding:5px 14px 5px 6px;border-bottom:1px solid rgba(255,255,255,.05)}
   .pie-table .pt-n{color:var(--faint);font-size:11.5px}
+  .val .nbar{margin-top:5px;width:110px;height:6px;
+    background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+  .val .nbar>div{height:100%;background:#4fd1a5;border-radius:3px}
   .group-title{font-size:14.5px;font-weight:700;color:var(--gold);
     letter-spacing:1px;margin:18px 0 8px;padding-left:10px;
     border-left:3px solid var(--gold-deep)}
@@ -524,7 +527,9 @@ const DATA = {
    "lift": 13.2,
    "id": "cowshed",
    "zh": "牛舍",
-   "avg": 216.6
+   "avg": 216.6,
+   "pick": 39.1,
+   "back_zh": "军械库/武器仓库"
   },
   {
    "n": 341,
@@ -535,7 +540,9 @@ const DATA = {
    "lift": 4.8,
    "id": "masons_shed",
    "zh": "石匠工棚",
-   "avg": 216.3
+   "avg": 216.3,
+   "pick": 93.9,
+   "back_zh": "养蜂小屋"
   },
   {
    "n": 390,
@@ -546,7 +553,9 @@ const DATA = {
    "lift": 4.1,
    "id": "hermits_hut",
    "zh": "隐士小屋",
-   "avg": 216.2
+   "avg": 216.2,
+   "pick": 100.0,
+   "back_zh": "冰窖"
   },
   {
    "n": 343,
@@ -557,7 +566,9 @@ const DATA = {
    "lift": 2.9,
    "id": "hunting_lodge",
    "zh": "猎人小屋",
-   "avg": 218.0
+   "avg": 218.0,
+   "pick": 97.4,
+   "back_zh": "猪圈"
   },
   {
    "n": 409,
@@ -568,7 +579,9 @@ const DATA = {
    "lift": 2.2,
    "id": "lumberjacks_hut",
    "zh": "伐木工小屋",
-   "avg": 215.9
+   "avg": 215.9,
+   "pick": 97.6,
+   "back_zh": "马厩"
   },
   {
    "n": 407,
@@ -579,7 +592,9 @@ const DATA = {
    "lift": 0.7,
    "id": "spinnery",
    "zh": "纺纱坊",
-   "avg": 214.7
+   "avg": 214.7,
+   "pick": 100.0,
+   "back_zh": "捕鲸小屋"
   },
   {
    "n": 224,
@@ -590,7 +605,9 @@ const DATA = {
    "lift": -1.8,
    "id": "armory",
    "zh": "军械库/武器仓库",
-   "avg": 216.2
+   "avg": 216.2,
+   "pick": 60.9,
+   "back_zh": "牛舍"
   },
   {
    "n": 22,
@@ -601,7 +618,9 @@ const DATA = {
    "lift": -6.8,
    "id": "beekeeper",
    "zh": "养蜂小屋",
-   "avg": 206.0
+   "avg": 206.0,
+   "pick": 6.1,
+   "back_zh": "石匠工棚"
   },
   {
    "n": 10,
@@ -612,7 +631,9 @@ const DATA = {
    "lift": -20.0,
    "id": "barn",
    "zh": "马厩",
-   "avg": 206.7
+   "avg": 206.7,
+   "pick": 2.4,
+   "back_zh": "伐木工小屋"
   },
   {
    "n": 0,
@@ -623,7 +644,9 @@ const DATA = {
    "lift": -50.0,
    "id": "icehouse",
    "zh": "冰窖",
-   "avg": 0.0
+   "avg": 0.0,
+   "pick": 0.0,
+   "back_zh": "隐士小屋"
   },
   {
    "n": 9,
@@ -634,7 +657,9 @@ const DATA = {
    "lift": -50.0,
    "id": "pig_sty",
    "zh": "猪圈",
-   "avg": 189.4
+   "avg": 189.4,
+   "pick": 2.6,
+   "back_zh": "猎人小屋"
   },
   {
    "n": 0,
@@ -645,7 +670,9 @@ const DATA = {
    "lift": -50.0,
    "id": "whaling_hut",
    "zh": "捕鲸小屋",
-   "avg": 0.0
+   "avg": 0.0,
+   "pick": 0.0,
+   "back_zh": "纺纱坊"
   }
  ],
  "cards": [
@@ -4444,8 +4471,13 @@ function valHtml(it, extra){
   const frac = it.raw
     ? `${fmtW(w)} / ${it.n} 局`
     : `${fmtW(w)} 胜 / ${it.n} 场`;
+  let more = "";
+  if(it.pick!=null)
+    more += `<div class="n" style="color:#e78ac3">选择率 ${it.pick.toFixed(1)}% · 背面${it.back_zh} ${(100-it.pick).toFixed(1)}%</div>`;
+  if(it.countbar!=null)
+    more += `<div class="nbar" title="共现 ${it.n} 次"><div style="width:${it.countbar}%"></div></div>`;
   return `<div class="val"><div class="pct ${side}">${it.wr.toFixed(1)}%</div>`
-    + `<div class="n">${frac}${extra||""}</div></div>`;
+    + `<div class="n">${frac}${extra||""}</div>${more}</div>`;
 }
 
 function badges(it){
@@ -4806,6 +4838,10 @@ function bindDiceTips(){
 DATA.cards.forEach((it,i)=>{ it._idx = i; });
 DATA.islands.forEach((it,i)=>{ it._idx = i; });
 DATA.sheds.forEach((it,i)=>{ it._idx = i; });
+{ // 岛屿组合：共现次数条（相对最大共现归一）
+  const mx = Math.max(...DATA.pairs.map(it=>it.n), 1);
+  DATA.pairs.forEach(it=>{ it.countbar = Math.max(4, Math.round(it.n/mx*100)); });
+}
 let currentView = "islands";
 const cardSlider = document.getElementById("cardmin");
 cardSlider.addEventListener("input",()=>{
