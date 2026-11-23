@@ -146,6 +146,18 @@
   .viewnote{font-size:12px;color:var(--faint);letter-spacing:.3px;
     margin:-2px 0 10px}
   .viewnote b{color:#a9bcd6;font-weight:600}
+  .cardfilter{display:flex;align-items:center;gap:10px;font-size:13px;
+    color:var(--dim);margin-bottom:10px;padding:7px 12px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+    border-radius:8px}
+  .cardfilter input[type=range]{flex:0 0 220px;accent-color:var(--gold)}
+  .cardfilter b{color:var(--gold);min-width:26px;text-align:right}
+  .cardfilter .cf-quick{display:flex;gap:6px}
+  .cardfilter .cf-quick button{background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.12);color:var(--dim);
+    border-radius:5px;padding:2px 8px;font-size:12px;cursor:pointer}
+  .cardfilter .cf-quick button:hover{color:var(--gold);border-color:var(--gold)}
+  .cardfilter .cf-count{margin-left:auto;color:var(--faint)}
   .group-title{font-size:14.5px;font-weight:700;color:var(--gold);
     letter-spacing:1px;margin:18px 0 8px;padding-left:10px;
     border-left:3px solid var(--gold-deep)}
@@ -196,6 +208,16 @@
   <section class="panel">
     <div class="corpus" id="corpus"></div>
     <div class="viewnote" id="viewnote"></div>
+    <div class="cardfilter" id="cardfilter" style="display:none">
+      <label>出场次数 ≥ </label>
+      <input type="range" id="cardmin" min="1" max="150" value="10" step="1">
+      <b id="cardminval">10</b>
+      <span class="cf-quick">
+        <button data-v="10">≥10</button><button data-v="30">≥30</button>
+        <button data-v="50">≥50</button><button data-v="100">≥100</button>
+      </span>
+      <span class="cf-count">显示 <b id="cardcnt"></b> 张</span>
+    </div>
     <div class="legend">
       <span><span class="sw bar-sw" style="background:var(--gold)"></span>正侧（胜率 &gt; 50%）</span>
       <span><span class="sw bar-sw" style="background:var(--blue)"></span>负侧（胜率 &lt; 50%）</span>
@@ -585,6 +607,79 @@ const DATA = {
  ],
  "cards": [
   {
+   "n": 1,
+   "wr": 100.0,
+   "lo": 20.7,
+   "hi": 100.0,
+   "lift": 50.0,
+   "avg": 186.0,
+   "no": "133B",
+   "zh": "长矛手",
+   "unmapped": false,
+   "gist": "每次突袭成功，额外得1银币或1豌豆。",
+   "pts": 1,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 1,
+   "wr": 100.0,
+   "lo": 20.7,
+   "hi": 100.0,
+   "lift": 50.0,
+   "avg": 229.0,
+   "no": "",
+   "zh": "设陷者*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 3,
+   "wr": 100.0,
+   "lo": 43.8,
+   "hi": 100.0,
+   "lift": 50.0,
+   "avg": 221.7,
+   "no": "10A",
+   "zh": "挤奶工",
+   "unmapped": false,
+   "gist": "打出时有羊或牛得1牛奶+1银币；羊和牛都有则得2牛奶+2银币。",
+   "pts": 1,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 1,
+   "wr": 100.0,
+   "lo": 20.7,
+   "hi": 100.0,
+   "lift": 50.0,
+   "avg": 227.0,
+   "no": "99A",
+   "zh": "工匠师傅",
+   "unmapped": false,
+   "gist": "每当你要拿1张职业卡入手时，可改为从手牌打出1张职业卡。",
+   "pts": 2,
+   "deck": "A",
+   "type": "每次/持续"
+  },
+  {
+   "n": 1,
+   "wr": 100.0,
+   "lo": 20.7,
+   "hi": 100.0,
+   "lift": 50.0,
+   "avg": 201.0,
+   "no": "",
+   "zh": "祭司*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
    "n": 11,
    "wr": 86.4,
    "lo": 57.1,
@@ -595,6 +690,35 @@ const DATA = {
    "zh": "公主",
    "unmapped": false,
    "gist": "每次使用建造房屋行动格，额外得1银器。",
+   "pts": 1,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 5,
+   "wr": 80.0,
+   "lo": 37.6,
+   "hi": 96.4,
+   "lift": 30.0,
+   "avg": 210.8,
+   "no": "",
+   "zh": "武器管理员*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 4,
+   "wr": 75.0,
+   "lo": 30.1,
+   "hi": 95.4,
+   "lift": 25.0,
+   "avg": 224.2,
+   "no": "107B",
+   "zh": "冒险者",
+   "unmapped": false,
+   "gist": "使用「探索设得兰/法罗」格时，可改拿任一翻开的探索版图，且任何船都行。",
    "pts": 1,
    "deck": "B",
    "type": "每次/持续"
@@ -657,6 +781,49 @@ const DATA = {
    "pts": 0,
    "deck": "A",
    "type": "任意时刻"
+  },
+  {
+   "n": 3,
+   "wr": 66.7,
+   "lo": 20.8,
+   "hi": 93.9,
+   "lift": 16.7,
+   "avg": 214.7,
+   "no": "",
+   "zh": "书记员*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 6,
+   "wr": 66.7,
+   "lo": 30.0,
+   "hi": 90.3,
+   "lift": 16.7,
+   "avg": 226.2,
+   "no": "130C",
+   "zh": "陷阱专家",
+   "unmapped": false,
+   "gist": "用2人的铺设陷阱格成功后，可弃2张陷阱卡收回1个维京人再用。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 3,
+   "wr": 66.7,
+   "lo": 20.8,
+   "hi": 93.9,
+   "lift": 16.7,
+   "avg": 213.7,
+   "no": "",
+   "zh": "亚麻烘焙师*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
   },
   {
    "n": 20,
@@ -790,6 +957,20 @@ const DATA = {
    "pts": 3,
    "deck": "B",
    "type": "立即（打出时）"
+  },
+  {
+   "n": 5,
+   "wr": 60.0,
+   "lo": 23.1,
+   "hi": 88.2,
+   "lift": 10.0,
+   "avg": 201.6,
+   "no": "",
+   "zh": "腌肉工*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
   },
   {
    "n": 116,
@@ -1584,6 +1765,35 @@ const DATA = {
    "type": "每次/持续"
   },
   {
+   "n": 4,
+   "wr": 50.0,
+   "lo": 15.0,
+   "hi": 85.0,
+   "lift": 0.0,
+   "avg": 218.5,
+   "no": "4c",
+   "zh": "猎人",
+   "unmapped": false,
+   "gist": "你所有掷骰结果永久-1（突袭、抢劫也一样）。",
+   "pts": 0,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 2,
+   "wr": 50.0,
+   "lo": 9.5,
+   "hi": 90.5,
+   "lift": 0.0,
+   "avg": 196.5,
+   "no": "",
+   "zh": "垂钓者*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
    "n": 97,
    "wr": 49.5,
    "lo": 39.7,
@@ -2164,6 +2374,20 @@ const DATA = {
    "type": "每次/持续"
   },
   {
+   "n": 8,
+   "wr": 37.5,
+   "lo": 13.7,
+   "hi": 69.4,
+   "lift": -12.5,
+   "avg": 211.1,
+   "no": "",
+   "zh": "海上厨师*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
    "n": 38,
    "wr": 36.8,
    "lo": 23.4,
@@ -2207,6 +2431,34 @@ const DATA = {
    "pts": 1,
    "deck": "B",
    "type": "任意时刻"
+  },
+  {
+   "n": 6,
+   "wr": 33.3,
+   "lo": 9.7,
+   "hi": 70.0,
+   "lift": -16.7,
+   "avg": 200.3,
+   "no": "",
+   "zh": "节日猎人*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 3,
+   "wr": 33.3,
+   "lo": 6.1,
+   "hi": 79.2,
+   "lift": -16.7,
+   "avg": 210.0,
+   "no": "",
+   "zh": "油腻厨子*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
   },
   {
    "n": 23,
@@ -2282,6 +2534,50 @@ const DATA = {
    "type": "每次/持续"
   },
   {
+   "n": 8,
+   "wr": 25.0,
+   "lo": 7.1,
+   "hi": 59.1,
+   "lift": -25.0,
+   "avg": 201.8,
+   "no": "",
+   "zh": "杜里斯特旅者*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 5,
+   "wr": 20.0,
+   "lo": 3.6,
+   "hi": 62.4,
+   "lift": -30.0,
+   "avg": 207.4,
+   "no": "169C",
+   "zh": "播种者",
+   "unmapped": false,
+   "gist": "有收获的轮次，已有亚麻则多收1亚麻；已有谷物时可改为多收1谷物。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 5,
+   "wr": 20.0,
+   "lo": 3.6,
+   "hi": 62.4,
+   "lift": -30.0,
+   "avg": 201.6,
+   "no": "13B",
+   "zh": "弓箭手",
+   "unmapped": false,
+   "gist": "打出时拿1张弓箭；之后狩猎时每颗骰-1。",
+   "pts": 1,
+   "deck": "B",
+   "type": "立即（打出时）"
+  },
+  {
    "n": 12,
    "wr": 16.7,
    "lo": 4.7,
@@ -2310,6 +2606,138 @@ const DATA = {
    "pts": 0,
    "deck": "B",
    "type": "每次/持续"
+  },
+  {
+   "n": 7,
+   "wr": 14.3,
+   "lo": 2.6,
+   "hi": 51.3,
+   "lift": -35.7,
+   "avg": 211.4,
+   "no": "131c",
+   "zh": "诱饵放置者",
+   "unmapped": false,
+   "gist": "每次铺设陷阱（无论成败），可用1鱼干换1野味。",
+   "pts": 1,
+   "deck": "C",
+   "type": "每次/持续"
+  },
+  {
+   "n": 1,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 79.3,
+   "lift": -50.0,
+   "avg": 176.0,
+   "no": "45C",
+   "zh": "海盗",
+   "unmapped": false,
+   "gist": "随时可用1木头+6银币换1藏宝箱。",
+   "pts": -1,
+   "deck": "C",
+   "type": "任意时刻"
+  },
+  {
+   "n": 3,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 56.2,
+   "lift": -50.0,
+   "avg": 210.7,
+   "no": "143B",
+   "zh": "鹿角贩卖者",
+   "unmapped": false,
+   "gist": "每次狩猎成功，额外得1银币。",
+   "pts": 2,
+   "deck": "B",
+   "type": "每次/持续"
+  },
+  {
+   "n": 4,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 49.0,
+   "lift": -50.0,
+   "avg": 195.8,
+   "no": "",
+   "zh": "击石工*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 1,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 79.3,
+   "lift": -50.0,
+   "avg": 202.0,
+   "no": "189B",
+   "zh": "水手",
+   "unmapped": false,
+   "gist": "终局计分时有2/3/4块探索版图，得4/9/16银币。",
+   "pts": 1,
+   "deck": "B",
+   "type": "条件触发"
+  },
+  {
+   "n": 3,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 56.2,
+   "lift": -50.0,
+   "avg": 180.7,
+   "no": "34a",
+   "zh": "牧羊人",
+   "unmapped": false,
+   "gist": "打出时有≥2只羊得1牛奶+1羊毛；≥4只羊再多得1羊毛。",
+   "pts": 0,
+   "deck": "A",
+   "type": "立即（打出时）"
+  },
+  {
+   "n": 3,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 56.2,
+   "lift": -50.0,
+   "avg": 184.3,
+   "no": "54A",
+   "zh": "零售商",
+   "unmapped": false,
+   "gist": "随时可把银器按1:1换成丝绸或箱子。",
+   "pts": 3,
+   "deck": "A",
+   "type": "任意时刻"
+  },
+  {
+   "n": 2,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 65.8,
+   "lift": -50.0,
+   "avg": 196.5,
+   "no": "",
+   "zh": "外商*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
+  },
+  {
+   "n": 1,
+   "wr": 0.0,
+   "lo": 0.0,
+   "hi": 79.3,
+   "lift": -50.0,
+   "avg": 206.0,
+   "no": "",
+   "zh": "皮匠*",
+   "unmapped": true,
+   "gist": "（BGA 译名未映射到卡号，按原名聚合，无卡面元数据）",
+   "pts": null,
+   "type": ""
   }
  ],
  "pairs": [
@@ -3686,7 +4114,7 @@ function viewNote(view){
     case "islands": return base + `样本 = 本局拿过该岛的玩家 · 角标 = S/A/B/C 分级` + tail;
     case "pairs": return base + `共现 <b>n≥30</b> 的岛对按组合胜率降序 · <b>组合 lift = 组合胜率 − 两岛单拿（边缘）胜率均值</b> · 悬停行查看单拿胜率明细` + tail;
     case "sheds": return base + `R1-4 建造口径（R5+ 建造不计入）` + tail;
-    case "cards": return base + `主榜 n≥10 · 悬停行查看卡号/分值/效果摘要` + tail;
+    case "cards": return base + `出场次数 ≥ <b>${cardMinN}</b>（上方滑块可调）· 悬停行查看卡号/分值/效果摘要` + tail;
     case "dice": return base + `胜者 vs 败者对比（胜 <b>${META.dice_win}</b> 人 / 负 <b>${META.dice_lose}</b> 人，平局 ${META.dice_tie} 人未计入）· 条形 = <b>掷骰成功率</b>（<span style="color:var(--gold)">金=胜组</span> / <span style="color:var(--blue)">蓝=负组</span>）· 小字 = 使用率与人均次数` + tail;
     case "emigration": {
       const e = DATA.emigration;
@@ -3747,8 +4175,10 @@ function badges(it){
 }
 
 /* ---------- 排名式视图（岛屿 / 手工工棚 / 职业卡 / 岛屿组合） ---------- */
+let cardMinN = 10;
 function renderRank(view){
-  const items = DATA[view];
+  let items = DATA[view];
+  if(view==="cards") items = items.filter(it=>it.n>=cardMinN);
   const d = domainOf(items);
   renderScale(d);
   let html="";
@@ -3779,7 +4209,7 @@ function renderRank(view){
       sub=`<span class="badge ${lp?"lift-pos":"lift-neg"}">lift ${lp?"+":""}${it.lift.toFixed(1)}pp</span>`
         + ` 出场 ${it.n} 次 · 场均 ${it.avg} 分`;
     }
-    const tipAttr = view==="cards" ? ` data-card="${i}"`
+    const tipAttr = view==="cards" ? ` data-card="${it._idx}"`
                   : view==="pairs" ? ` data-pair="${i}"`
                   : view==="islands" ? ` data-isl="${i}"`
                   : view==="sheds" ? ` data-shed="${i}"` : "";
@@ -3910,6 +4340,11 @@ function renderEmigration(){
 
 function render(view){
   noteEl.innerHTML = viewNote(view);
+  document.getElementById("cardfilter").style.display = view==="cards" ? "" : "none";
+  if(view==="cards"){
+    document.getElementById("cardcnt").textContent =
+      DATA.cards.filter(it=>it.n>=cardMinN).length + " / " + DATA.cards.length;
+  }
   scaleLabel.textContent = view==="dice" ? "掷骰成功率"
     : view==="emigration" ? "占本组比例（胜 / 负）" : "胜率 · n / 总样本";
   if(view==="dice") return renderDice();
@@ -4046,6 +4481,21 @@ function bindDiceTips(){
     followTip(rowEl);
   });
 }
+
+/* ---------- 职业卡出场次数筛选 ---------- */
+DATA.cards.forEach((it,i)=>{ it._idx = i; });
+const cardSlider = document.getElementById("cardmin");
+cardSlider.addEventListener("input",()=>{
+  cardMinN = +cardSlider.value;
+  document.getElementById("cardminval").textContent = cardMinN;
+  render("cards");
+});
+document.querySelectorAll(".cf-quick button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    cardSlider.value = btn.dataset.v;
+    cardSlider.dispatchEvent(new Event("input"));
+  });
+});
 
 /* ---------- Tab ---------- */
 document.querySelectorAll(".tab").forEach(btn=>{
