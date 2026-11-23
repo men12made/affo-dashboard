@@ -158,13 +158,15 @@
     border-radius:5px;padding:2px 8px;font-size:12px;cursor:pointer}
   .cardfilter .cf-quick button:hover{color:var(--gold);border-color:var(--gold)}
   .cardfilter .cf-count{margin-left:auto;color:var(--faint)}
-  .pie-row{display:flex;gap:60px;flex-wrap:wrap;margin:6px 0 4px}
-  .pie-box{display:flex;flex-direction:column;align-items:center;gap:6px}
-  .pie-cap{font-size:14px;font-weight:700;letter-spacing:1px}
-  .pie-sub{font-size:11.5px;color:var(--faint);max-width:280px;text-align:center;
-    line-height:1.6}
-  .pie-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;
-    color:var(--dim);margin-bottom:8px}
+  .pie-wrap{display:flex;align-items:flex-start;gap:44px;flex-wrap:wrap;
+    margin:8px 0 4px}
+  .pie-box{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .pie-cap{font-size:15px;font-weight:800;letter-spacing:1.5px}
+  .pie-table table{border-collapse:collapse;font-size:13.5px;color:var(--dim)}
+  .pie-table th{text-align:left;padding:4px 14px 8px 6px;font-size:12.5px;
+    font-weight:600;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.12)}
+  .pie-table td{padding:5px 14px 5px 6px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .pie-table .pt-n{color:var(--faint);font-size:11.5px}
   .group-title{font-size:14.5px;font-weight:700;color:var(--gold);
     letter-spacing:1px;margin:18px 0 8px;padding-left:10px;
     border-left:3px solid var(--gold-deep)}
@@ -4577,13 +4579,12 @@ function renderDice(){
   bindDiceTips();
 }
 
-/* ---------- 移民：赢家画像（胜/负 双饼图） ---------- */
-const PIE_COLORS = ["#c98f3d","#4f86c6","#5f9e8f","#9a6fb0","#b0705f","#6f8fc0",
-                    "#a8934f","#5fa0b0"];
-function pieSvg(items, key, total){
-  const size=200, cx=size/2, cy=size/2, r=size/2-4;
-  let angle=-Math.PI/2;
-  let parts="";
+/* ---------- 移民：赢家画像（胜/负 双饼图 + 对照表） ---------- */
+const PIE_COLORS = ["#e8b04b","#5da9e9","#4fd1a5","#e78ac3","#ff8a5c","#9ab8ff",
+                    "#d4d95f","#5fd4d4"];
+function pieSvg(items, key){
+  const size=250, cx=size/2, cy=size/2, r=size/2-34;
+  let angle=-Math.PI/2, parts="";
   const n = items.reduce((s,it)=>s+it[key+"_n"],0);
   items.forEach((it,i)=>{
     const cnt = it[key+"_n"];
@@ -4593,12 +4594,22 @@ function pieSvg(items, key, total){
     const large = frac>0.5 ? 1 : 0;
     const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
     const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
-    parts += `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${PIE_COLORS[i%PIE_COLORS.length]}" stroke="#12233d" stroke-width="1.5"/>`;
-    // 标签（占比 >4% 才写进扇区）
-    if(frac>0.04){
-      const mid=(angle+a2)/2, lr=r*0.62;
-      const lx=cx+lr*Math.cos(mid), ly=cy+lr*Math.sin(mid);
-      parts += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#0d1b2e" font-size="13" font-weight="700" text-anchor="middle" dominant-baseline="middle">${(frac*100).toFixed(1)}%</text>`;
+    const col = PIE_COLORS[i%PIE_COLORS.length];
+    parts += `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${col}" stroke="#0d1b2e" stroke-width="2"/>`;
+    const mid=(angle+a2)/2;
+    if(frac>=0.07){
+      // 大扇区：内标签
+      const lr=r*0.62, lx=cx+lr*Math.cos(mid), ly=cy+lr*Math.sin(mid);
+      parts += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#0d1b2e" font-size="15" font-weight="800" text-anchor="middle" dominant-baseline="middle">${(frac*100).toFixed(1)}%</text>`;
+    } else if(frac>=0.01){
+      // 小扇区（1%~7%）：外向引线标签
+      const lr1=r+2, lr2=r+18;
+      const lx1=cx+lr1*Math.cos(mid), ly1=cy+lr1*Math.sin(mid);
+      const lx2=cx+lr2*Math.cos(mid), ly2=cy+lr2*Math.sin(mid);
+      const side = Math.cos(mid)>=0 ? 1 : -1;
+      const lx3=lx2+side*10;
+      parts += `<polyline points="${lx1.toFixed(1)},${ly1.toFixed(1)} ${lx2.toFixed(1)},${ly2.toFixed(1)} ${lx3.toFixed(1)},${ly2.toFixed(1)}" fill="none" stroke="${col}" stroke-width="1.5"/>`
+        + `<text x="${(lx3+side*4).toFixed(1)}" y="${(ly2+4).toFixed(1)}" fill="${col}" font-size="12" font-weight="700" text-anchor="${side>0?"start":"end"}">${(frac*100).toFixed(1)}%</text>`;
     }
     angle=a2;
   });
@@ -4610,23 +4621,28 @@ function renderEmigration(){
   let html="";
   groups.forEach(g=>{
     html += `<div class="group-title">${g.title}</div>`;
-    // 图例（两组共用色序）
-    let legend = `<div class="pie-legend">`;
-    g.items.forEach((it,i)=>{
-      legend += `<span><span class="sw" style="background:${PIE_COLORS[i%PIE_COLORS.length]};width:11px;height:11px;border-radius:2px"></span>${it.label}</span>`;
-    });
-    legend += `</div>`;
-    html += legend;
-    html += `<div class="pie-row">`;
-    for(const [gr,grZh] of [["win","胜组"],["lose","负组"]]){
+    html += `<div class="pie-wrap">`;
+    for(const [gr,grZh,cls] of [["win","胜组","gold"],["lose","负组","blue"]]){
       const np = gr==="win" ? DATA.emigration.n_win : DATA.emigration.n_lose;
       html += `<div class="pie-box">
-        <div class="pie-cap" style="color:${gr==="win"?"var(--gold)":"var(--blue)"}">${grZh}（n=${np}）</div>
-        ${pieSvg(g.items, gr, np)}
-        <div class="pie-sub">${g.items.map((it,i)=>{const c=it[gr+"_n"];return c>0?`${it.label} ${c}人`:""}).filter(Boolean).join(" · ")}</div>
+        <div class="pie-cap" style="color:var(--${cls})">${grZh}（n=${np}）</div>
+        ${pieSvg(g.items, gr)}
       </div>`;
     }
-    html += `</div>`;
+    // 对照表
+    html += `<div class="pie-table"><table>
+      <tr><th></th><th style="color:var(--gold)">胜组</th><th style="color:var(--blue)">负组</th><th>Δ（胜−负）</th></tr>`;
+    g.items.forEach((it,i)=>{
+      const delta = it.win - it.lose;
+      const dCls = delta>=0 ? "lift-pos" : "lift-neg";
+      html += `<tr>
+        <td><span class="sw" style="background:${PIE_COLORS[i%PIE_COLORS.length]};width:11px;height:11px;border-radius:2px"></span> ${it.label}</td>
+        <td><b>${it.win.toFixed(1)}%</b> <span class="pt-n">(${it.win_n})</span></td>
+        <td><b>${it.lose.toFixed(1)}%</b> <span class="pt-n">(${it.lose_n})</span></td>
+        <td><span class="badge ${dCls}">${delta>=0?"+":""}${delta.toFixed(1)}pp</span></td>
+      </tr>`;
+    });
+    html += `</table></div></div>`;
     if(g.foots && g.foots.length){
       const parts = g.foots.map(f=>`${f.label} <b><span style="color:var(--gold)">胜 ${f.win.toFixed(2)}</span> / <span style="color:var(--blue)">负 ${f.lose.toFixed(2)}</span></b> ${f.unit}`);
       html += `<div class="group-foot">${parts.join(" · ")}</div>`;
