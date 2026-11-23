@@ -219,13 +219,14 @@
     <div class="viewnote" id="viewnote"></div>
     <div class="cardfilter" id="cardfilter" style="display:none">
       <label>出场次数 ≥ </label>
-      <input type="range" id="cardmin" min="1" max="150" value="10" step="1">
+      <input type="range" id="cardmin" min="0" max="150" value="10" step="1">
       <b id="cardminval">10</b>
       <span class="cf-quick">
-        <button data-v="10">≥10</button><button data-v="30">≥30</button>
-        <button data-v="50">≥50</button><button data-v="100">≥100</button>
+        <button data-v="0">全部</button><button data-v="10">≥10</button>
+        <button data-v="30">≥30</button><button data-v="50">≥50</button>
+        <button data-v="100">≥100</button>
       </span>
-      <span class="cf-count">显示 <b id="cardcnt"></b> 张</span>
+      <span class="cf-count">显示 <b id="cardcnt"></b> 个</span>
     </div>
     <div class="legend">
       <span><span class="sw bar-sw" style="background:var(--gold)"></span>正侧（胜率 &gt; 50%）</span>
@@ -4386,10 +4387,10 @@ function viewNote(view){
   const base = `口径：<b>${META.games}</b> 局 / <b>${META.samples}</b> 玩家样本 · `;
   const tail = ` · <b>相关非因果</b>`;
   switch(view){
-    case "islands": return base + `样本 = 本局拿过该岛的玩家 · 角标 = S/A/B/C 分级` + tail;
+    case "islands": return base + `样本 = 本局拿过该岛的玩家 · 角标 = S/A/B/C 分级 · 出场 ≥ <b>${minN.islands}</b>（滑块可调）` + tail;
     case "pairs": return base + `共现 <b>n≥30</b> 的岛对按组合胜率降序 · <b>组合 lift = 组合胜率 − 两岛单拿（边缘）胜率均值</b> · 悬停行查看单拿胜率明细` + tail;
-    case "sheds": return base + `R1-4 建造口径（R5+ 建造不计入）` + tail;
-    case "cards": return base + `出场次数 ≥ <b>${cardMinN}</b>（上方滑块可调）· 悬停行查看卡号/分值/效果摘要` + tail;
+    case "sheds": return base + `R1-4 建造口径（R5+ 建造不计入）· 出场 ≥ <b>${minN.sheds}</b>（滑块可调）` + tail;
+    case "cards": return base + `出场次数 ≥ <b>${minN.cards}</b>（上方滑块可调）· 悬停行查看卡号/分值/效果摘要` + tail;
     case "dice": return base + `胜者 vs 败者对比（胜 <b>${META.dice_win}</b> 人 / 负 <b>${META.dice_lose}</b> 人，平局 ${META.dice_tie} 人未计入）· 条形 = <b>掷骰成功率</b>（<span style="color:var(--gold)">金=胜组</span> / <span style="color:var(--blue)">蓝=负组</span>）· 小字 = 使用率与人均次数` + tail;
     case "emigration": {
       const e = DATA.emigration;
@@ -4455,10 +4456,11 @@ function badges(it){
 }
 
 /* ---------- 排名式视图（岛屿 / 手工工棚 / 职业卡 / 岛屿组合） ---------- */
-let cardMinN = 10;
+const FILTER_VIEWS = {"cards":10, "islands":0, "sheds":0};
+const minN = {...FILTER_VIEWS};
 function renderRank(view){
   let items = DATA[view];
-  if(view==="cards") items = items.filter(it=>it.n>=cardMinN);
+  if(view in FILTER_VIEWS) items = items.filter(it=>it.n>=minN[view]);
   const d = domainOf(items);
   renderScale(d);
   let html="";
@@ -4491,8 +4493,8 @@ function renderRank(view){
     }
     const tipAttr = view==="cards" ? ` data-card="${it._idx}"`
                   : view==="pairs" ? ` data-pair="${i}"`
-                  : view==="islands" ? ` data-isl="${i}"`
-                  : view==="sheds" ? ` data-shed="${i}"` : "";
+                  : view==="islands" ? ` data-isl="${it._idx}"`
+                  : view==="sheds" ? ` data-shed="${it._idx}"` : "";
     html += `<div class="row${dim}"${tipAttr}>
       <div class="rank">${i+1}</div>
       <div class="icon${small}" style="background:${iconBg}">${iconTxt}${corner}</div>
@@ -4653,10 +4655,15 @@ function renderEmigration(){
 
 function render(view){
   noteEl.innerHTML = viewNote(view);
-  document.getElementById("cardfilter").style.display = view==="cards" ? "" : "none";
-  if(view==="cards"){
+  const showFilter = view in FILTER_VIEWS;
+  document.getElementById("cardfilter").style.display = showFilter ? "" : "none";
+  if(showFilter){
+    const s = document.getElementById("cardmin");
+    s.value = minN[view];
+    s.max = Math.max(...DATA[view].map(it=>it.n), 10);
+    document.getElementById("cardminval").textContent = minN[view];
     document.getElementById("cardcnt").textContent =
-      DATA.cards.filter(it=>it.n>=cardMinN).length + " / " + DATA.cards.length;
+      DATA[view].filter(it=>it.n>=minN[view]).length + " / " + DATA[view].length;
   }
   scaleLabel.textContent = view==="dice" ? "掷骰成功率"
     : view==="emigration" ? "占本组比例（胜 / 负）" : "胜率 · 胜场 / 拿取场数";
@@ -4795,13 +4802,16 @@ function bindDiceTips(){
   });
 }
 
-/* ---------- 职业卡出场次数筛选 ---------- */
+/* ---------- 出场次数筛选（岛屿/工棚/职业卡） ---------- */
 DATA.cards.forEach((it,i)=>{ it._idx = i; });
+DATA.islands.forEach((it,i)=>{ it._idx = i; });
+DATA.sheds.forEach((it,i)=>{ it._idx = i; });
+let currentView = "islands";
 const cardSlider = document.getElementById("cardmin");
 cardSlider.addEventListener("input",()=>{
-  cardMinN = +cardSlider.value;
-  document.getElementById("cardminval").textContent = cardMinN;
-  render("cards");
+  minN[currentView] = +cardSlider.value;
+  document.getElementById("cardminval").textContent = minN[currentView];
+  render(currentView);
 });
 document.querySelectorAll(".cf-quick button").forEach(btn=>{
   btn.addEventListener("click",()=>{
@@ -4815,6 +4825,7 @@ document.querySelectorAll(".tab").forEach(btn=>{
   btn.addEventListener("click",()=>{
     document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
+    currentView = btn.dataset.view;
     render(btn.dataset.view);
   });
 });
