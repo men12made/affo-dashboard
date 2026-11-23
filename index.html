@@ -115,6 +115,43 @@
     background:var(--white);transform:translate(-50%,-50%);z-index:5;
     box-shadow:0 0 5px rgba(0,0,0,.6)}
 
+  /* ---------- 英雄榜横幅 ---------- */
+  .hero{display:flex;align-items:stretch;gap:26px;margin:14px 0 16px;
+    padding:20px 26px;border-radius:14px;
+    background:linear-gradient(115deg,#12233d 0%,#0d1b2e 55%,#14294a 100%);
+    border:1px solid rgba(201,143,61,.25)}
+  .hero-left{display:flex;flex-direction:column;justify-content:center;
+    min-width:340px;gap:14px}
+  .hero-title{font-size:34px;font-weight:800;color:var(--gold);
+    letter-spacing:4px;text-shadow:0 2px 12px rgba(201,143,61,.35)}
+  .hero-meta{display:flex;gap:10px;flex-wrap:wrap}
+  .hero-meta span{background:rgba(255,255,255,.06);border-radius:16px;
+    padding:4px 14px;font-size:13px;color:#a9bcd6}
+  .hero-meta b{color:#e8eefc}
+  .hero-btn{background:var(--gold);color:#0d1b2e;border:none;border-radius:8px;
+    padding:8px 22px;font-size:14px;font-weight:700;cursor:pointer;
+    letter-spacing:2px}
+  .hero-btn:hover{filter:brightness(1.15)}
+  .hero-podium{display:flex;gap:16px;flex:1;justify-content:flex-end}
+  .podium-card{position:relative;width:170px;border-radius:12px;overflow:hidden;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+    display:flex;flex-direction:column;align-items:center;padding:0 0 12px}
+  .podium-card.first{width:190px;border-color:var(--gold);
+    box-shadow:0 0 18px rgba(201,143,61,.35)}
+  .podium-img{width:100%;height:120px;object-fit:cover;object-position:center 30%}
+  .podium-icon{width:100%;height:120px;display:flex;align-items:center;
+    justify-content:center;font-size:44px;font-weight:800;
+    background:rgba(255,255,255,.05)}
+  .podium-rank{position:absolute;top:8px;left:8px;width:30px;height:30px;
+    border-radius:50%;background:#e8eefc;color:#0d1b2e;font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:16px}
+  .podium-card.first .podium-rank{background:var(--gold)}
+  .podium-name{font-size:16px;font-weight:700;margin-top:10px;color:#e8eefc}
+  .podium-wr{font-size:30px;font-weight:800;color:var(--gold);
+    font-variant-numeric:tabular-nums;line-height:1.2}
+  .podium-wr .pc{font-size:16px}
+  .podium-frac{font-size:12px;color:#8ea3bd}
+
   /* ---------- 右列数值 ---------- */
   .val{text-align:right}
   .pct{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;
@@ -219,6 +256,17 @@
     </nav>
   </header>
 
+  <section class="hero" id="hero">
+    <div class="hero-left">
+      <div class="hero-title" id="hero-title">胜率榜</div>
+      <div class="hero-meta" id="hero-meta"></div>
+      <div class="hero-actions">
+        <button class="hero-btn" id="btn-export">导出长图</button>
+      </div>
+    </div>
+    <div class="hero-podium" id="hero-podium"></div>
+  </section>
+
   <section class="panel">
     <div class="cardfilter" id="cardfilter" style="display:none">
       <label>出场次数 ≥ </label>
@@ -251,6 +299,8 @@ const DATA = {
   "samples": 2920,
   "ties": 25,
   "overall": 50.0,
+  "players": 176,
+  "date_range": "2025.10.21 – 2026.11.12",
   "dice_win": 1435,
   "dice_lose": 1435,
   "dice_tie": 50
@@ -4366,6 +4416,10 @@ const DATA = {
 };
 
 const META = DATA.meta;
+document.getElementById("hero-meta").innerHTML =
+  `<span><b>${META.players}</b> 名玩家</span>`
+  + `<span><b>${META.games.toLocaleString()}</b> 次对局</span>`
+  + `<span>${META.date_range}</span>`;
 const GRADE_CLASS = {"S":"g-S","A":"g-A","B":"g-B","C":"g-C","数据不足":"g-na"};
 const ICON_BG = ["#c98f3d","#4f86c6","#5f9e8f","#9a6fb0","#b0705f","#6f8fc0",
                  "#a8934f","#5fa0b0","#b06f8f","#7a9e5f"];
@@ -4663,6 +4717,7 @@ function renderEmigration(){
 }
 
 function render(view){
+  renderHero(view);
   const showFilter = view in FILTER_VIEWS;
   document.getElementById("cardfilter").style.display = showFilter ? "" : "none";
   if(showFilter){
@@ -4697,11 +4752,15 @@ function followTip(rowEl){
    img — 直接 <img>（自托管扫图，相对路径）
    pct — 雪碧图，background-size/position 用百分比（BGA 原生写法，元素整体缩放）
    px  — 雪碧图，background-position 用固定像素（可选 background-size 缩放宽度） */
+/* 本地 file:// 打开时，自托管图片改指 ../gh-pages/ 前缀（线上位于根目录无需前缀） */
+const IMG_PREFIX = location.protocol === "file:" ? "../gh-pages/" : "";
+function imgSrc(src){ return src.startsWith("img/") ? IMG_PREFIX + src : src; }
+
 function imgHtml(id){
   const s = (DATA.images||{})[id];
   if(!s) return "";
   if(s.mode==="img"){
-    return `<div class="img-frame"><img src="${s.src}"`
+    return `<div class="img-frame"><img src="${imgSrc(s.src)}"`
       + ` style="width:${s.size[0]}px;height:${s.size[1]}px" alt="" loading="lazy"></div>`;
   }
   if(s.mode==="pct"){
@@ -4722,6 +4781,81 @@ function imgBlock(ids){
   const parts = (ids||[]).map(imgHtml).filter(Boolean);
   return parts.length ? `<div class="t-img">${parts.join("")}</div>` : "";
 }
+
+/* ---------- 英雄榜横幅 ---------- */
+const HERO_TITLES = {"islands":"岛屿胜率榜","pairs":"组合胜率榜","sheds":"工棚胜率榜",
+  "cards":"职业卡胜率榜","dice":"骰子行动榜","emigration":"移民画像",
+  "crown":"皇冠榜","duel":"对立局榜"};
+function podiumImg(id){
+  const s = (DATA.images||{})[id];
+  if(!s) return null;
+  if(s.mode==="img") return `<img class="podium-img" src="${imgSrc(s.src)}" alt="">`;
+  if(s.mode==="pct")
+    return `<div class="podium-img" style="background-image:url('${s.src}');`
+      + `background-size:${s.bgsize[0]*0.5}% ${s.bgsize[1]*0.5}%;`
+      + `background-position:${s.bgpos[0]}% ${s.bgpos[1]}%"></div>`;
+  if(s.mode==="px"){
+    const bs = s.sheetw ? `background-size:${s.sheetw*0.5}px auto;` : "";
+    return `<div class="podium-img" style="background-image:url('${s.src}');${bs}`
+      + `background-position:-${s.pos[0]*0.5}px -${s.pos[1]*0.5}px"></div>`;
+  }
+  return null;
+}
+function renderHero(view){
+  document.getElementById("hero-title").textContent = HERO_TITLES[view]||"胜率榜";
+  const pod = document.getElementById("hero-podium");
+  pod.innerHTML = "";
+  if(!(view in FILTER_VIEWS) && view!=="pairs") return;
+  const items = DATA[view].filter(it=>it.n>=10).slice(0,3);
+  items.forEach((it,i)=>{
+    let imgHtml_;
+    if(view==="islands") imgHtml_ = podiumImg(it.id);
+    else if(view==="sheds") imgHtml_ = podiumImg(it.id);
+    else if(view==="pairs") imgHtml_ = podiumImg(it.a);
+    const w = it.w!=null ? it.w : Math.round(it.wr*it.n)/100;
+    pod.innerHTML += `<div class="podium-card${i===0?" first":""}">
+      <div class="podium-rank">${i+1}</div>
+      ${imgHtml_ || `<div class="podium-icon">${it.icon||it.no||it.zh?.[0]||"?"}</div>`}
+      <div class="podium-name">${it.zh||it.label}</div>
+      <div class="podium-wr">${it.wr.toFixed(1)}<span class="pc">%</span></div>
+      <div class="podium-frac">${fmtW(w)} 胜 / ${it.n} 场</div>
+    </div>`;
+  });
+}
+
+/* ---------- 导出长图（SVG foreignObject 序列化，零依赖） ---------- */
+function exportLong(){
+  const title = document.getElementById("hero-title").textContent;
+  const styles = Array.from(document.querySelectorAll("style"))
+    .map(s=>s.textContent).join("\n");
+  const rowsClone = rowsEl.cloneNode(true);
+  const w = Math.max(rowsEl.scrollWidth+56, 1200);
+  const inner = `<div xmlns="http://www.w3.org/1999/xhtml" style="background:#0d1b2e;padding:24px 28px;width:${w-56}px;font-family:'Microsoft YaHei','PingFang SC',sans-serif">`
+    + `<style>${styles}</style>`
+    + `<div style="color:#c98f3d;font-size:26px;font-weight:800;letter-spacing:3px;margin-bottom:6px">${title}</div>`
+    + `<div style="color:#8ea3bd;font-size:13px;margin-bottom:16px">${META.players} 名玩家 · ${META.games} 局 · ${META.date_range} · men12made.github.io/affo-dashboard</div>`
+    + `${rowsClone.outerHTML}</div>`;
+  const estH = rowsEl.scrollHeight + 120;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${estH}">`
+    + `<foreignObject width="100%" height="100%">${inner}</foreignObject></svg>`;
+  const img = new Image();
+  img.onload = ()=>{
+    const c = document.createElement("canvas");
+    c.width = w*2; c.height = estH*2;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#0d1b2e";
+    ctx.fillRect(0,0,c.width,c.height);
+    ctx.scale(2,2);
+    ctx.drawImage(img,0,0);
+    const a = document.createElement("a");
+    a.download = `${title}.png`;
+    a.href = c.toDataURL("image/png");
+    a.click();
+  };
+  img.onerror = ()=>alert("导出失败：当前浏览器不支持此导出方式");
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+document.getElementById("btn-export").addEventListener("click", exportLong);
 
 /* ---------- 职业卡 tooltip ---------- */
 function bindCardTips(){
