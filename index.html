@@ -74,6 +74,15 @@
     display:flex;align-items:center;justify-content:center;
     font-weight:700;font-size:15px;color:#0d1b2e;
     box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.14)}
+  .pair-swap{position:relative;width:44px;height:44px;border-radius:50%;
+    overflow:hidden;flex:none;
+    box-shadow:0 2px 8px rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,255,255,.14)}
+  .pair-swap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .pair-swap img.sa{animation:paSwapA 4.5s ease-in-out infinite}
+  .pair-swap img.sb{animation:paSwapB 4.5s ease-in-out infinite}
+  @keyframes paSwapA{0%,42%{opacity:1}50%,92%{opacity:0}100%{opacity:1}}
+  @keyframes paSwapB{0%,42%{opacity:0}50%,92%{opacity:1}100%{opacity:0}}
+  .pair-swap.big{width:100%;height:120px;border-radius:0}
   .icon .corner{position:absolute;right:-4px;bottom:-4px;min-width:19px;
     height:19px;border-radius:9px;font-size:11px;font-weight:700;
     display:flex;align-items:center;justify-content:center;padding:0 4px;
@@ -252,7 +261,7 @@
       <button class="tab" data-view="dice">骰子行动</button>
       <button class="tab" data-view="emigration">移 民</button>
       <button class="tab" data-view="crown">皇 冠</button>
-      <button class="tab" data-view="duel">对立局</button>
+      <button class="tab" data-view="duel">强势岛屿的争夺</button>
     </nav>
   </header>
 
@@ -4519,8 +4528,15 @@ function badges(it){
 }
 
 /* ---------- 排名式视图（岛屿 / 手工工棚 / 职业卡 / 岛屿组合） ---------- */
-const FILTER_VIEWS = {"cards":10, "islands":0, "sheds":0};
+const FILTER_VIEWS = {"cards":10, "islands":0, "sheds":0, "pairs":30};
 const minN = {...FILTER_VIEWS};
+DATA.pairs.forEach((it,i)=>{ it._idx = i; });
+function pairSwapHtml(it, cls){
+  const sa = (DATA.images||{})[it.a], sb = (DATA.images||{})[it.b];
+  if(sa && sb && sa.mode==="img" && sb.mode==="img")
+    return `<div class="pair-swap${cls||""}"><img class="sa" src="${imgSrc(sa.src)}" alt=""><img class="sb" src="${imgSrc(sb.src)}" alt=""></div>`;
+  return null;
+}
 function renderRank(view){
   let items = DATA[view];
   if(view in FILTER_VIEWS) items = items.filter(it=>it.n>=minN[view]);
@@ -4529,9 +4545,10 @@ function renderRank(view){
   let html="";
   items.forEach((it,i)=>{
     const dim = it.n<10 ? " dim":"";
-    let iconTxt, iconBg, corner="";
+    let iconTxt, iconBg, corner="", iconHtml=null;
     if(view==="cards"){ iconTxt = it.no||"?"; iconBg = ICON_BG[i%ICON_BG.length]; }
-    else if(view==="pairs"){ iconTxt = it.icon; iconBg = ICON_BG[i%ICON_BG.length]; }
+    else if(view==="pairs"){ iconTxt = it.icon; iconBg = ICON_BG[i%ICON_BG.length];
+      iconHtml = pairSwapHtml(it); }
     else{
       iconTxt = it.zh.charAt(0);
       iconBg = view==="islands"
@@ -4555,12 +4572,15 @@ function renderRank(view){
         + ` 出场 ${it.n} 次 · 场均 ${it.avg} 分`;
     }
     const tipAttr = view==="cards" ? ` data-card="${it._idx}"`
-                  : view==="pairs" ? ` data-pair="${i}"`
+                  : view==="pairs" ? ` data-pair="${it._idx}"`
                   : view==="islands" ? ` data-isl="${it._idx}"`
                   : view==="sheds" ? ` data-shed="${it._idx}"` : "";
+    const iconCell = iconHtml
+      ? iconHtml
+      : `<div class="icon${small}" style="background:${iconBg}">${iconTxt}${corner}</div>`;
     html += `<div class="row${dim}"${tipAttr}>
       <div class="rank">${i+1}</div>
-      <div class="icon${small}" style="background:${iconBg}">${iconTxt}${corner}</div>
+      ${iconCell}
       <div class="name-col"><div class="name">${it.zh}${badges(it)}</div>
         <div class="sub">${sub}</div></div>
       <div class="track">${barHtml(it,d)}</div>
@@ -4730,7 +4750,7 @@ function render(view){
   }
   if(view==="dice") return renderDice();
   if(view==="emigration") return renderEmigration();
-  if(view==="crown") return renderGroups(view);
+  if(view==="crown") return renderCrown();
   if(view==="duel") return renderGroups(view);
   return renderRank(view);
 }
@@ -4785,7 +4805,7 @@ function imgBlock(ids){
 /* ---------- 英雄榜横幅 ---------- */
 const HERO_TITLES = {"islands":"岛屿胜率榜","pairs":"组合胜率榜","sheds":"工棚胜率榜",
   "cards":"职业卡胜率榜","dice":"骰子行动榜","emigration":"移民画像",
-  "crown":"皇冠榜","duel":"对立局榜"};
+  "crown":"皇冠榜","duel":"强势岛屿的争夺"};
 function podiumImg(id){
   const s = (DATA.images||{})[id];
   if(!s) return null;
@@ -4811,7 +4831,7 @@ function renderHero(view){
     let imgHtml_;
     if(view==="islands") imgHtml_ = podiumImg(it.id);
     else if(view==="sheds") imgHtml_ = podiumImg(it.id);
-    else if(view==="pairs") imgHtml_ = podiumImg(it.a);
+    else if(view==="pairs") imgHtml_ = pairSwapHtml(it, " big") || podiumImg(it.a);
     const w = it.w!=null ? it.w : Math.round(it.wr*it.n)/100;
     pod.innerHTML += `<div class="podium-card${i===0?" first":""}">
       <div class="podium-rank">${i+1}</div>
@@ -4856,6 +4876,44 @@ function exportLong(){
   img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 document.getElementById("btn-export").addEventListener("click", exportLong);
+
+/* ---------- 皇冠：持有者结局饼图（互斥事件） ---------- */
+function renderCrown(){
+  scaleEl.innerHTML="";
+  const c = DATA.crown;
+  const items = [
+    {label:"持有者胜", win_n:c.win},
+    {label:"持有者负", win_n:c.lose},
+    {label:"平局", win_n:c.tie},
+  ];
+  const colors = ["#e8b04b","#5da9e9","#7a8699"];
+  const n = c.holders;
+  let parts="";
+  const size=280, cx=size/2, cy=size/2, r=size/2-34;
+  let angle=-Math.PI/2;
+  items.forEach((it,i)=>{
+    const frac = it.win_n/n;
+    const a2 = angle + frac*2*Math.PI;
+    const large = frac>0.5 ? 1 : 0;
+    const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    parts += `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${colors[i]}" stroke="#0d1b2e" stroke-width="2"/>`;
+    if(frac>=0.05){
+      const mid=(angle+a2)/2, lr=r*0.62;
+      const lx=cx+lr*Math.cos(mid), ly=cy+lr*Math.sin(mid);
+      parts += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#0d1b2e" font-size="16" font-weight="800" text-anchor="middle" dominant-baseline="middle">${(frac*100).toFixed(1)}%</text>`;
+    }
+    angle=a2;
+  });
+  const legend = items.map((it,i)=>
+    `<span><span class="sw" style="background:${colors[i]};width:11px;height:11px;border-radius:2px"></span>${it.label} <b>${(it.win_n/n*100).toFixed(1)}%</b>（${it.win_n} 局）</span>`).join("");
+  rowsEl.innerHTML = `<div class="group-title">拿到皇冠的对局（${n} 局）中持有者的结局分布</div>
+    <div class="pie-wrap">
+      <div class="pie-box"><svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${parts}</svg></div>
+      <div class="pie-table"><div class="pie-legend">${legend}</div>
+      <div style="color:var(--faint);font-size:12.5px;margin-top:14px">无人拿皇冠的 ${DATA.meta.games - n} 局无影响，不计入</div></div>
+    </div>`;
+}
 
 /* ---------- 职业卡 tooltip ---------- */
 function bindCardTips(){
