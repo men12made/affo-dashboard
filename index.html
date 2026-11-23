@@ -158,6 +158,13 @@
     border-radius:5px;padding:2px 8px;font-size:12px;cursor:pointer}
   .cardfilter .cf-quick button:hover{color:var(--gold);border-color:var(--gold)}
   .cardfilter .cf-count{margin-left:auto;color:var(--faint)}
+  .pie-row{display:flex;gap:60px;flex-wrap:wrap;margin:6px 0 4px}
+  .pie-box{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .pie-cap{font-size:14px;font-weight:700;letter-spacing:1px}
+  .pie-sub{font-size:11.5px;color:var(--faint);max-width:280px;text-align:center;
+    line-height:1.6}
+  .pie-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;
+    color:var(--dim);margin-bottom:8px}
   .group-title{font-size:14.5px;font-weight:700;color:var(--gold);
     letter-spacing:1px;margin:18px 0 8px;padding-left:10px;
     border-left:3px solid var(--gold-deep)}
@@ -3509,25 +3516,49 @@ const DATA = {
       "label": "0 艘",
       "icon": "0",
       "win": 3.7,
-      "lose": 5.5
+      "lose": 5.5,
+      "win_n": 53,
+      "lose_n": 79
      },
      {
       "label": "1 艘",
       "icon": "1",
       "win": 27.4,
-      "lose": 30.2
+      "lose": 30.2,
+      "win_n": 393,
+      "lose_n": 433
      },
      {
       "label": "2 艘",
       "icon": "2",
       "win": 43.1,
-      "lose": 43.3
+      "lose": 43.3,
+      "win_n": 619,
+      "lose_n": 622
      },
      {
-      "label": "3+ 艘",
-      "icon": "3+",
-      "win": 25.8,
-      "lose": 21.0
+      "label": "3 艘",
+      "icon": "3",
+      "win": 21.5,
+      "lose": 17.8,
+      "win_n": 308,
+      "lose_n": 255
+     },
+     {
+      "label": "4 艘",
+      "icon": "4",
+      "win": 4.2,
+      "lose": 2.9,
+      "win_n": 60,
+      "lose_n": 42
+     },
+     {
+      "label": "5+ 艘",
+      "icon": "5+",
+      "win": 0.1,
+      "lose": 0.3,
+      "win_n": 2,
+      "lose_n": 4
      }
     ],
     "foots": [
@@ -3546,25 +3577,33 @@ const DATA = {
       "label": "不移民",
       "icon": "无",
       "win": 3.7,
-      "lose": 5.5
+      "lose": 5.5,
+      "win_n": 53,
+      "lose_n": 79
      },
      {
       "label": "只小移民",
       "icon": "小",
       "win": 64.0,
-      "lose": 65.4
+      "lose": 65.4,
+      "win_n": 919,
+      "lose_n": 938
      },
      {
       "label": "只大移民",
       "icon": "大",
       "win": 8.2,
-      "lose": 7.0
+      "lose": 7.0,
+      "win_n": 118,
+      "lose_n": 101
      },
      {
       "label": "大小都用",
       "icon": "混",
       "win": 24.0,
-      "lose": 22.1
+      "lose": 22.1,
+      "win_n": 345,
+      "lose_n": 317
      }
     ],
     "foots": [
@@ -4118,7 +4157,7 @@ function viewNote(view){
     case "dice": return base + `胜者 vs 败者对比（胜 <b>${META.dice_win}</b> 人 / 负 <b>${META.dice_lose}</b> 人，平局 ${META.dice_tie} 人未计入）· 条形 = <b>掷骰成功率</b>（<span style="color:var(--gold)">金=胜组</span> / <span style="color:var(--blue)">蓝=负组</span>）· 小字 = 使用率与人均次数` + tail;
     case "emigration": {
       const e = DATA.emigration;
-      return base + `赢家画像：胜者 vs 败者对比（胜 <b>${e.n_win}</b> 人 / 负 <b>${e.n_lose}</b> 人，平局未计入）· 条形 = <b>占本组比例</b>（<span style="color:var(--gold)">金=胜组</span> / <span style="color:var(--blue)">蓝=负组</span>）· 移民判定 = 纯银币支付且金额 = 轮数（大移民 = 同一行动内打出职业卡；减费卡 R4+ 认 金额=轮数−1）` + tail;
+      return base + `赢家画像：胜者 vs 败者双饼图（胜 <b>${e.n_win}</b> 人 / 负 <b>${e.n_lose}</b> 人，平局未计入）· 扇区 = 占本组比例，图例两饼共用色序 · 移民判定 = 纯银币支付且金额 = 轮数（大移民 = 同一行动内打出职业卡；减费卡 R4+ 认 金额=轮数−1）` + tail;
     }
     case "crown": {
       const c = DATA.crown;
@@ -4299,37 +4338,56 @@ function renderDice(){
   bindDiceTips();
 }
 
-/* ---------- 移民：赢家画像（胜者 vs 败者双条，样式同骰子行动） ---------- */
+/* ---------- 移民：赢家画像（胜/负 双饼图） ---------- */
+const PIE_COLORS = ["#c98f3d","#4f86c6","#5f9e8f","#9a6fb0","#b0705f","#6f8fc0",
+                    "#a8934f","#5fa0b0"];
+function pieSvg(items, key, total){
+  const size=200, cx=size/2, cy=size/2, r=size/2-4;
+  let angle=-Math.PI/2;
+  let parts="";
+  const n = items.reduce((s,it)=>s+it[key+"_n"],0);
+  items.forEach((it,i)=>{
+    const cnt = it[key+"_n"];
+    if(cnt<=0) return;
+    const frac = cnt/n;
+    const a2 = angle + frac*2*Math.PI;
+    const large = frac>0.5 ? 1 : 0;
+    const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    parts += `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${PIE_COLORS[i%PIE_COLORS.length]}" stroke="#12233d" stroke-width="1.5"/>`;
+    // 标签（占比 >4% 才写进扇区）
+    if(frac>0.04){
+      const mid=(angle+a2)/2, lr=r*0.62;
+      const lx=cx+lr*Math.cos(mid), ly=cy+lr*Math.sin(mid);
+      parts += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#0d1b2e" font-size="13" font-weight="700" text-anchor="middle" dominant-baseline="middle">${(frac*100).toFixed(1)}%</text>`;
+    }
+    angle=a2;
+  });
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${parts}</svg>`;
+}
 function renderEmigration(){
+  scaleEl.innerHTML="";
   const groups = DATA.emigration.groups;
-  const rates = [];
-  groups.forEach(g=>g.items.forEach(it=>{ rates.push(it.win, it.lose); }));
-  let lo = Math.min(...rates), hi = Math.max(...rates);
-  lo = Math.max(0, Math.floor((lo-2)/5)*5);
-  hi = Math.min(100, Math.ceil((hi+2)/5)*5);
-  const d = [lo,hi];
-  renderScale(d);
   let html="";
   groups.forEach(g=>{
-    html += `<div class="group-title">${g.title}<span class="g-sub">占本组（胜 / 负）比例</span></div>`;
+    html += `<div class="group-title">${g.title}</div>`;
+    // 图例（两组共用色序）
+    let legend = `<div class="pie-legend">`;
     g.items.forEach((it,i)=>{
-      const small = (it.icon||"").length>1 ? " small" : "";
-      let bars = gridHtml(d);
-      for(const [gr,v] of [["win",it.win],["lose",it.lose]]){
-        const xw = X(v,d);
-        bars += `<div class="dbar ${gr}" style="width:${xw}%"></div>`
-              + `<span class="dlab ${gr}" style="left:calc(${xw}% + 5px)">${gr==="win"?"胜":"负"} ${v.toFixed(1)}%</span>`;
-      }
-      const val = `<div class="val"><div class="cmp"><span class="w">胜 ${it.win.toFixed(1)}%</span><br><span class="l">负 ${it.lose.toFixed(1)}%</span></div>`
-        + `<div class="n">占本组比例</div></div>`;
-      html += `<div class="row">
-        <div class="rank">${i+1}</div>
-        <div class="icon${small}" style="background:${ICON_BG[(i+2)%ICON_BG.length]}">${it.icon}</div>
-        <div class="name-col"><div class="name">${it.label}</div></div>
-        <div class="track">${bars}</div>
-        ${val}
-      </div>`;
+      legend += `<span><span class="sw" style="background:${PIE_COLORS[i%PIE_COLORS.length]};width:11px;height:11px;border-radius:2px"></span>${it.label}</span>`;
     });
+    legend += `</div>`;
+    html += legend;
+    html += `<div class="pie-row">`;
+    for(const [gr,grZh] of [["win","胜组"],["lose","负组"]]){
+      const np = gr==="win" ? DATA.emigration.n_win : DATA.emigration.n_lose;
+      html += `<div class="pie-box">
+        <div class="pie-cap" style="color:${gr==="win"?"var(--gold)":"var(--blue)"}">${grZh}（n=${np}）</div>
+        ${pieSvg(g.items, gr, np)}
+        <div class="pie-sub">${g.items.map((it,i)=>{const c=it[gr+"_n"];return c>0?`${it.label} ${c}人`:""}).filter(Boolean).join(" · ")}</div>
+      </div>`;
+    }
+    html += `</div>`;
     if(g.foots && g.foots.length){
       const parts = g.foots.map(f=>`${f.label} <b><span style="color:var(--gold)">胜 ${f.win.toFixed(2)}</span> / <span style="color:var(--blue)">负 ${f.lose.toFixed(2)}</span></b> ${f.unit}`);
       html += `<div class="group-foot">${parts.join(" · ")}</div>`;
