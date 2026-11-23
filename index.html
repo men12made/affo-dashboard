@@ -120,6 +120,8 @@
   .pct{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;
     letter-spacing:.5px}
   .pct.pos{color:var(--gold)} .pct.neg{color:var(--blue)}
+  .pct .frac{font-size:13px;font-weight:500;color:#8ea3bd;margin-left:8px;
+    letter-spacing:0}
   .val .n{font-size:12.5px;color:#a9bcd6;font-weight:600;margin-top:2px;
     font-variant-numeric:tabular-nums}
 
@@ -218,8 +220,6 @@
   </header>
 
   <section class="panel">
-    <div class="corpus" id="corpus"></div>
-    <div class="viewnote" id="viewnote"></div>
     <div class="cardfilter" id="cardfilter" style="display:none">
       <label>出场次数 ≥ </label>
       <input type="range" id="cardmin" min="0" max="150" value="10" step="1">
@@ -231,23 +231,15 @@
       </span>
       <span class="cf-count">显示 <b id="cardcnt"></b> 个</span>
     </div>
-    <div class="legend">
-      <span><span class="sw bar-sw" style="background:var(--gold)"></span>正侧（胜率 &gt; 50%）</span>
-      <span><span class="sw bar-sw" style="background:var(--blue)"></span>负侧（胜率 &lt; 50%）</span>
-      <span><span class="sw ci-sw"></span>Wilson 95% CI 须线</span>
-      <span><span class="sw dash-sw"></span>50% 基准线</span>
-      <span><span class="badge sig" style="vertical-align:1px">显著</span> CI 不含 50%</span>
-      <span><span class="badge low" style="vertical-align:1px">数据不足</span> n &lt; 10</span>
-    </div>
     <div class="scale-row">
       <div></div><div></div><div></div>
       <div class="scale-track" id="scale"></div>
-      <div style="text-align:right" id="scale-label">胜率 · n / 总样本</div>
+      <div style="text-align:right" id="scale-label"></div>
     </div>
     <div class="rows" id="rows"></div>
   </section>
 
-  <footer>Odin Advisor · 语料快照 corpus_1460_snapshot.json（最终版 1460 局 mini2 长局） · 由 tools/make_dashboard.py 生成 · 相关非因果，不构成出牌建议的唯一依据</footer>
+  <footer>Odin Advisor · 1460 局 mini2 长局语料 · <a href="https://github.com/men12made/affo-dashboard#readme" style="color:var(--gold)">口径与说明文档</a></footer>
 </div>
 
 <div id="tip"></div>
@@ -4374,26 +4366,16 @@ const DATA = {
 };
 
 const META = DATA.meta;
-document.getElementById("corpus").innerHTML =
-  `<span>口径：<b>${META.games}</b> 局 mini2 长局（二人） / <b>${META.samples}</b> 玩家样本` +
-  `（平局各记 0.5 胜，共 ${META.ties} 局平局，全体样本胜率 ${META.overall}%）</span>` +
-  `<span><b>Wilson 95% CI</b>（z=1.96）</span>` +
-  `<span>相关非因果（行为与玩家水平/局势混杂）</span>`;
-
 const GRADE_CLASS = {"S":"g-S","A":"g-A","B":"g-B","C":"g-C","数据不足":"g-na"};
 const ICON_BG = ["#c98f3d","#4f86c6","#5f9e8f","#9a6fb0","#b0705f","#6f8fc0",
                  "#a8934f","#5fa0b0","#b06f8f","#7a9e5f"];
 
-/* 每个视图自适应横轴：覆盖所有 CI 端点，向 5% 取整，至少含 50% */
-function domainOf(items){
-  let lo = 50, hi = 50;
-  for(const it of items){ if(it.n>0){ lo=Math.min(lo,it.lo); hi=Math.max(hi,it.hi);} }
-  lo = Math.max(0, Math.floor((lo-1.5)/5)*5);
-  hi = Math.min(100, Math.ceil((hi+1.5)/5)*5);
-  if(hi-lo < 20){ const m=(hi+lo)/2; lo=Math.max(0,m-10); hi=Math.min(100,m+10); }
-  return [lo,hi];
-}
-const X = (v,d)=>((v-d[0])/(d[1]-d[0])*100);
+/* 胜率视图统一固定 30-70% 尺度（出界截断到边缘） */
+function domainOf(items){ return [30,70]; }
+const X = (v,d)=>{
+  const x = (v-d[0])/(d[1]-d[0])*100;
+  return Math.max(0, Math.min(100, x));
+};
 function ticksOf(d){
   const t=[];
   for(let v=Math.ceil(d[0]/10)*10; v<=d[1]; v+=10) t.push(v);
@@ -4405,8 +4387,6 @@ function sigOf(it){ return it.n>=10 && (it.lo>50 || it.hi<50); }
 
 const rowsEl = document.getElementById("rows");
 const scaleEl = document.getElementById("scale");
-const scaleLabel = document.getElementById("scale-label");
-const noteEl = document.getElementById("viewnote");
 const tip = document.getElementById("tip");
 
 /* 每个视图顶部的口径说明（全部视图共用 1460 局 / Wilson CI / 相关非因果口径） */
@@ -4468,16 +4448,13 @@ function valHtml(it, extra){
     + `<div class="n">0 / 0 场</div></div>`;
   const side = it.wr>=50 ? "pos":"neg";
   const w = it.w!=null ? it.w : Math.round(it.wr*it.n)/100;
-  const frac = it.raw
-    ? `${fmtW(w)} / ${it.n} 局`
-    : `${fmtW(w)} 胜 / ${it.n} 场`;
   let more = "";
   if(it.pick!=null)
-    more += `<div class="n" style="color:#e78ac3">选择率 ${it.pick.toFixed(1)}% · 背面${it.back_zh} ${(100-it.pick).toFixed(1)}%</div>`;
+    more += `<div class="n" style="color:#e78ac3">${it.pick.toFixed(1)}% / ${(100-it.pick).toFixed(1)}%</div>`;
   if(it.countbar!=null)
     more += `<div class="nbar" title="共现 ${it.n} 次"><div style="width:${it.countbar}%"></div></div>`;
-  return `<div class="val"><div class="pct ${side}">${it.wr.toFixed(1)}%</div>`
-    + `<div class="n">${frac}${extra||""}</div>${more}</div>`;
+  return `<div class="val"><div class="pct ${side}">${it.wr.toFixed(1)}% <span class="frac">${fmtW(w)}/${it.n}</span></div>`
+    + `${more}</div>`;
 }
 
 function badges(it){
@@ -4686,7 +4663,6 @@ function renderEmigration(){
 }
 
 function render(view){
-  noteEl.innerHTML = viewNote(view);
   const showFilter = view in FILTER_VIEWS;
   document.getElementById("cardfilter").style.display = showFilter ? "" : "none";
   if(showFilter){
@@ -4697,8 +4673,6 @@ function render(view){
     document.getElementById("cardcnt").textContent =
       DATA[view].filter(it=>it.n>=minN[view]).length + " / " + DATA[view].length;
   }
-  scaleLabel.textContent = view==="dice" ? "掷骰成功率"
-    : view==="emigration" ? "占本组比例（胜 / 负）" : "胜率 · 胜场 / 拿取场数";
   if(view==="dice") return renderDice();
   if(view==="emigration") return renderEmigration();
   if(view==="crown") return renderGroups(view);
