@@ -1,0 +1,107 @@
+{
+ "shetland": {
+  "file": "shetland.jpg",
+  "w": 620,
+  "h": 619
+ },
+ "isle_of_man": {
+  "file": "isle_of_man.jpg",
+  "w": 619,
+  "h": 620
+ },
+ "lofoten": {
+  "file": "lofoten.jpg",
+  "w": 620,
+  "h": 619
+ },
+ "bear_island": {
+  "file": "bear_island.jpg",
+  "w": 618,
+  "h": 620
+ },
+ "limerick": {
+  "file": "limerick.jpg",
+  "w": 620,
+  "h": 619
+ },
+ "orkney": {
+  "file": "orkney.jpg",
+  "w": 620,
+  "h": 619
+ },
+ "isle_of_mull": {
+  "file": "isle_of_mull.jpg",
+  "w": 618,
+  "h": 620
+ },
+ "isle_of_skye": {
+  "file": "isle_of_skye.jpg",
+  "w": 619,
+  "h": 620
+ },
+ "faroe_islands": {
+  "file": "faroe_islands.jpg",
+  "w": 618,
+  "h": 620
+ },
+ "caithness": {
+  "file": "caithness.jpg",
+  "w": 618,
+  "h": 620
+ },
+ "wexford": {
+  "file": "wexford.jpg",
+  "w": 617,
+  "h": 620
+ },
+ "baffin_island": {
+  "file": "baffin_island.jpg",
+  "w": 618,
+  "h": 620
+ },
+ "outer_hebrides": {
+  "file": "outer_hebrides.jpg",
+  "w": 618,
+  "h": 620
+ },
+ "iceland": {
+  "file": "iceland.jpg",
+  "w": 619,
+  "h": 620
+ },
+ "tierra_del_fuego": {
+  "file": "tierra_del_fuego.jpg",
+  "w": 620,
+  "h": 619
+ },
+ "cork": {
+  "file": "cork.jpg",
+  "w": 618,
+  "h": 620
+ },
+ "labrador": {
+  "file": "labrador.jpg",
+  "w": 617,
+  "h": 620
+ },
+ "greenland": {
+  "file": "greenland.jpg",
+  "w": 620,
+  "h": 617
+ },
+ "islay": {
+  "file": "islay.jpg",
+  "w": 620,
+  "h": 619
+ },
+ "newfoundland": {
+  "file": "newfoundland.jpg",
+  "w": 620,
+  "h": 617
+ },
+ "waterford": {
+  "file": "waterford.jpg",
+  "w": 620,
+  "h": 619
+ }
+}
