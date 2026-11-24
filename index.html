@@ -4810,16 +4810,22 @@ function podiumImg(id){
   const s = (DATA.images||{})[id];
   if(!s) return null;
   if(s.mode==="img") return `<img class="podium-img" src="${imgSrc(s.src)}" alt="">`;
+  // 雪碧图：切片参数原样，外层 transform 缩放到 120px 高并居中
+  const k = 120 / s.size[1];
+  let spec;
   if(s.mode==="pct")
-    return `<div class="podium-img" style="background-image:url('${s.src}');`
-      + `background-size:${s.bgsize[0]*0.5}% ${s.bgsize[1]*0.5}%;`
-      + `background-position:${s.bgpos[0]}% ${s.bgpos[1]}%"></div>`;
-  if(s.mode==="px"){
-    const bs = s.sheetw ? `background-size:${s.sheetw*0.5}px auto;` : "";
-    return `<div class="podium-img" style="background-image:url('${s.src}');${bs}`
-      + `background-position:-${s.pos[0]*0.5}px -${s.pos[1]*0.5}px"></div>`;
+    spec = `background-size:${s.bgsize[0]}% ${s.bgsize[1]}%;`
+         + `background-position:${s.bgpos[0]}% ${s.bgpos[1]}%;`;
+  else {
+    const bs = s.sheetw ? `background-size:${s.sheetw}px auto;` : "";
+    spec = `${bs}background-position:-${s.pos[0]}px -${s.pos[1]}px;`;
   }
-  return null;
+  return `<div class="podium-img" style="overflow:hidden;position:relative">`
+    + `<div style="width:${s.size[0]}px;height:${s.size[1]}px;`
+    + `background-image:url('${imgSrc(s.src)}');${spec}`
+    + `position:absolute;left:50%;top:0;`
+    + `transform:translateX(-50%) scale(${k.toFixed(3)});`
+    + `transform-origin:top center"></div></div>`;
 }
 function renderHero(view){
   document.getElementById("hero-title").textContent = HERO_TITLES[view]||"胜率榜";
@@ -4877,22 +4883,23 @@ function exportLong(){
 }
 document.getElementById("btn-export").addEventListener("click", exportLong);
 
-/* ---------- 皇冠：持有者结局饼图（互斥事件） ---------- */
+/* ---------- 皇冠：持有者结局饼图 + lift 表（互斥事件） ---------- */
 function renderCrown(){
   scaleEl.innerHTML="";
   const c = DATA.crown;
+  const tieBase = META.ties / META.games * 100;   // 全局平局率
+  const n = c.holders;
   const items = [
-    {label:"持有者胜", win_n:c.win},
-    {label:"持有者负", win_n:c.lose},
-    {label:"平局", win_n:c.tie},
+    {label:"持有者胜", n:c.win, lift:c.win/n*100-50},
+    {label:"持有者负", n:c.lose, lift:c.lose/n*100-50},
+    {label:"平局", n:c.tie, lift:c.tie/n*100-tieBase},
   ];
   const colors = ["#e8b04b","#5da9e9","#7a8699"];
-  const n = c.holders;
   let parts="";
   const size=280, cx=size/2, cy=size/2, r=size/2-34;
   let angle=-Math.PI/2;
   items.forEach((it,i)=>{
-    const frac = it.win_n/n;
+    const frac = it.n/n;
     const a2 = angle + frac*2*Math.PI;
     const large = frac>0.5 ? 1 : 0;
     const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
@@ -4905,13 +4912,23 @@ function renderCrown(){
     }
     angle=a2;
   });
-  const legend = items.map((it,i)=>
-    `<span><span class="sw" style="background:${colors[i]};width:11px;height:11px;border-radius:2px"></span>${it.label} <b>${(it.win_n/n*100).toFixed(1)}%</b>（${it.win_n} 局）</span>`).join("");
-  rowsEl.innerHTML = `<div class="group-title">拿到皇冠的对局（${n} 局）中持有者的结局分布</div>
+  let rows = "";
+  items.forEach((it,i)=>{
+    const share = it.n/n*100;
+    const dCls = it.lift>=0 ? "lift-pos" : "lift-neg";
+    rows += `<tr>
+      <td><span class="sw" style="background:${colors[i]};width:11px;height:11px;border-radius:2px"></span> ${it.label}</td>
+      <td><b>${share.toFixed(1)}%</b> <span class="pt-n">(${it.n})</span></td>
+      <td><span class="badge ${dCls}">lift ${it.lift>=0?"+":""}${it.lift.toFixed(1)}pp</span></td>
+    </tr>`;
+  });
+  rowsEl.innerHTML = `<div class="group-title">皇冠持有者结局（${n} 局）</div>
     <div class="pie-wrap">
       <div class="pie-box"><svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${parts}</svg></div>
-      <div class="pie-table"><div class="pie-legend">${legend}</div>
-      <div style="color:var(--faint);font-size:12.5px;margin-top:14px">无人拿皇冠的 ${DATA.meta.games - n} 局无影响，不计入</div></div>
+      <div class="pie-table"><table>
+        <tr><th>结局</th><th>占比</th><th>lift</th></tr>
+        ${rows}
+      </table></div>
     </div>`;
 }
 
